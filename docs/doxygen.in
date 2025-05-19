@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: (C) 2024 Siemens AG
+# SPDX-License-Identifier: LGPL-2.1-only
+PROJECT_NAME           = @PACKAGE_NAME@
+PROJECT_NUMBER         = @PACKAGE_VERSION@
+PROJECT_BRIEF          = @PACKAGE_DESCRIPTION@
+JAVADOC_AUTOBRIEF      = YES
+TAB_SIZE               = 4
+OPTIMIZE_OUTPUT_FOR_C  = YES
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = NO
+MAX_INITIALIZER_LINES  = 0
+WARNINGS               = YES
+QUIET                  = YES
+INPUT                  = "@apisrcdir@" "@MAINPAGE@"
+IMAGE_PATH             = "@builddir@"
+GENERATE_HTML          = YES
+GENERATE_HTMLHELP      = NO
+HTML_OUTPUT            = api
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+GENERATE_LATEX         = NO
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+DOTFILE_DIRS           = "@builddir@"
+EXAMPLE_PATH           = "@builddir@"
+SHOW_NAMESPACES        = NO
+STRIP_FROM_INC_PATH    = "@apisrcdir@"
+USE_MDFILE_AS_MAINPAGE = "@MAINPAGE@"
+PREDEFINED             = PUBLIC_API= DOXYGEN=1 G_BEGIN_DECLS G_END_DECLS
+EXCLUDE_SYMBOLS        = PUBLIC_API _SSO_MIB_INSIDE_ G_BEGIN_DECLS G_END_DECLS
+STRIP_FROM_PATH        = "@apisrcdir@"
+ALIASES               += dbuscall{1}="\note Synchronous DBus call to \c \1"

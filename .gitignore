@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: (C) 2024 Siemens AG
+# SPDX-License-Identifier: GPL-2.0-only
+build/
+install/
+.vscode/

@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: (C) 2025 Siemens AG
+# SPDX-License-Identifier: LGPL-2.1-only
+option('documentation',
+       type: 'boolean',
+       value: false,
+       description: 'Build the documentation [default=false]')
+option('examples',
+       type: 'boolean',
+       value: false,
+       description: 'Build the examples [default=false]')

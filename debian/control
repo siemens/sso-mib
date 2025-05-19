@@ -1,0 +1,44 @@
+Source: sso-mib
+Section: libs
+Priority: optional
+Maintainer: Felix Moessbauer <felix.moessbauer@siemens.com>
+Rules-Requires-Root: no
+Build-Depends:
+ meson,
+ debhelper-compat (= 13),
+ bash-completion,
+ dh-sequence-bash-completion,
+ libgio-2.0-dev | libgio3.0-cil-dev,
+ libjson-glib-dev,
+ libdbus-1-dev,
+ uuid-dev,
+Standards-Version: 4.6.2
+Homepage: https://code.siemens.com/felix.moessbauer/sso-mib/
+Vcs-Browser: https://code.siemens.com/felix.moessbauer/sso-mib/
+Vcs-Git: https://code.siemens.com/felix.moessbauer/sso-mib.git
+
+Package: libsso-mib-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends:
+ libsso-mib0 (= ${binary:Version}),
+ libgio-2.0-dev | libgio3.0-cil-dev,
+ ${misc:Depends},
+Description: Single-Sign-On using Microsoft Identity Broker (development files)
+
+Package: libsso-mib0
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Single-Sign-On using Microsoft Identity Broker (library)
+
+Package: sso-mib-tool
+Architecture: any
+Multi-Arch: foreign
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Single-Sign-On using Microsoft Identity Broker (tool)

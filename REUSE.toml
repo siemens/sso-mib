@@ -1,0 +1,16 @@
+version = 1
+SPDX-PackageName = "sso-mib"
+SPDX-PackageSupplier = "Felix Moessbauer <felix.moessbauer@siemens.com>"
+SPDX-PackageDownloadLocation = "https://github.com/siemens/sso-mib"
+
+[[annotations]]
+path = "debian/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Siemens AG"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["README.md", "dbus/spec/com.microsoft.identity.broker1.xml"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Siemens AG"
+SPDX-License-Identifier = "MIT"

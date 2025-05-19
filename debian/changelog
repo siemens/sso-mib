@@ -1,0 +1,11 @@
+sso-mib (0.4.0) unstable; urgency=medium
+
+  * Update to 0.4.0 release
+
+ -- Felix Moessbauer <felix.moessbauer@siemens.com>  Thu, 15 May 2025 09:28:55 +0200
+
+sso-mib (0.3.0) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Felix Moessbauer <felix.moessbauer@siemens.com>  Mon, 12 May 2025 13:03:41 +0200
