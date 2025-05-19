@@ -1,3 +1,5 @@
+![API Docs](https://img.shields.io/badge/API-documented-blue?link=https%3A%2F%2Fsiemens.github.io%2Fsso-mib%2F)
+
 # Single-Sign-On using Microsoft Identity Broker (SSO-MIB)
 
 This project implements a C library to interact with a locally running microsoft-identity-broker to get various authentication tokens via DBus.
