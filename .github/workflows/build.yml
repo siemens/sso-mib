@@ -1,0 +1,121 @@
+# SPDX-FileCopyrightText: Copyright 2025 Siemens AG
+#
+# SPDX-License-Identifier: MIT
+
+name: build sso-mib
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to checkout the repository
+permissions:
+  contents: read
+
+jobs:
+  reuse-and-codestyle:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: install dependencies
+        run: |
+          pip3 install --break-system-packages fsfe-reuse
+          git clean -f -d
+
+      - name: execute linters
+        run: |
+          reuse lint
+
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            ninja-build \
+            meson \
+            doxygen \
+            graphviz \
+            libcurl4-openssl-dev \
+            libgio3.0-cil-dev \
+            libjson-glib-dev \
+            libdbus-1-dev \
+            uuid-dev
+
+      - name: build components
+        run: |
+          meson setup -Ddocumentation=True -Dexamples=True build
+          cd build && ninja
+
+      - name: upload API docs
+        uses: actions/upload-pages-artifact@v3
+        id: deployment
+        with:
+          path: build/api/
+
+  package:
+    strategy:
+      matrix:
+        distro: ["debian:bookworm", "debian:trixie", "ubuntu:noble"]
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.distro }}
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends devscripts equivs
+          mk-build-deps --install -t "apt-get --no-install-recommends -y"
+      - name: build package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          mkdir linux-amd64-deb && cp ../*.deb linux-amd64-deb
+      - name: generate package name
+        run: echo "PN=${{ matrix.distro }}" | sed s/:/-/ >> $GITHUB_ENV
+      - name: upload package for ${{ matrix.distro }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PN }} packages
+          path: |
+            linux-amd64-deb/*.deb
+      - name: attest package artifacts
+        uses: actions/attest-build-provenance@v1
+        if: github.event_name == 'push'
+        with:
+          subject-path: |
+            linux-amd64-deb/*.deb
+
+  deploy:
+    runs-on: ubuntu-24.04
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy API docs
+        if: github.ref == 'refs/heads/main'
+        id: deployment
+        uses: actions/deploy-pages@v4
