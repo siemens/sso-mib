@@ -60,7 +60,7 @@ The `sso-mib-tool` provides a simple frontend to interact with the library.
 ## Maintainers
 
 - Felix Moessbauer <felix.moessbauer@siemens.com>
-- Andreas Ziegler <andreas.ziegler@siemens.com>
+- Andreas Ziegler <ziegler.andreas@siemens.com>
 
 ## Code Integrity
 
