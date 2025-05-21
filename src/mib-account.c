@@ -100,8 +100,10 @@ JsonObject *mib_account_to_json(const MIBAccount *account)
 	}
 	json_builder_set_member_name(builder, "environment");
 	json_builder_add_string_value(builder, account->environment);
-	json_builder_set_member_name(builder, "familyName");
-	json_builder_add_string_value(builder, account->family_name);
+	if (account->family_name) {
+		json_builder_set_member_name(builder, "familyName");
+		json_builder_add_string_value(builder, account->family_name);
+	}
 	json_builder_set_member_name(builder, "givenName");
 	json_builder_add_string_value(builder, account->given_name);
 	json_builder_set_member_name(builder, "homeAccountId");
