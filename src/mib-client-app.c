@@ -54,10 +54,9 @@ static void mib_client_app_class_init(MIBClientAppClass *klass)
 
 static void mib_client_app_init(MIBClientApp *self)
 {
-	MIBClientApp *priv = mib_client_app_get_instance_private(self);
 	const gchar *loglevel = g_getenv("MIB_LOG_LEVEL");
 	if (loglevel) {
-		priv->log_level = atoi(loglevel);
+		self->log_level = atoi(loglevel);
 	}
 }
 
