@@ -215,8 +215,8 @@ static void print_help(char *name)
 	g_print("Usage: %s COMMAND [OPTION]...\n", basename(name));
 	g_print("Commands:\n");
 	g_print(
-		"  getAccounts, acquirePrtSsoCookie, acquireTokenSilent, acquireTokenInteractive, "
-		"getLinuxBrokerVersion, generateSignedHttpRequest)\n");
+		"  getAccounts, removeAccount, acquirePrtSsoCookie, acquireTokenSilent,\n"
+		"  acquireTokenInteractive, getLinuxBrokerVersion, generateSignedHttpRequest\n");
 	g_print("Options:\n");
 	g_print("  -a <account>  Account index (default: 0)\n");
 	g_print("  -A <upn>      Select account by User Principal Name\n");
@@ -336,6 +336,26 @@ int main(int argc, char **argv)
 			print_account(account, "  ");
 		}
 		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+	} else if (strcmp(command, "removeAccount") == 0) {
+		GSList *accounts = mib_client_app_get_accounts(app);
+		if (!accounts) {
+			g_print("No accounts registered\n");
+			g_object_unref(app);
+			g_object_unref(cancellable);
+			return 0;
+		}
+		MIBAccount *account = g_slist_nth_data(accounts, account_idx);
+		g_print("Selected account: %s\n", mib_account_get_username(account));
+		int ret = mib_client_app_remove_account(app, account);
+		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+		if (ret == 0) {
+			g_print("removed account\n");
+		} else {
+			g_print("failed to remove account\n");
+			g_object_unref(app);
+			g_object_unref(cancellable);
+			return 1;
+		}
 	} else if (strcmp(command, "acquirePrtSsoCookie") == 0) {
 		GSList *scopes = NULL;
 		scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
