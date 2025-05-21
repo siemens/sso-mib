@@ -19,6 +19,9 @@
 #define MIB_MS_BROKER_REDIRECT_URI_FMT \
 	"ms-appx-web://Microsoft.AAD.BrokerPlugin/%s"
 
+// MSAL does not define any lower-bound (yet)
+#define MIB_REQUIRED_BROKER_PROTOCOL_VERSION "0.0"
+
 struct _MIBClientApp {
 	GObject parent_instance;
 
@@ -141,7 +144,7 @@ static JsonObject *mib_client_app_get_accounts_raw(MIBClientApp *app)
 	json_node_unref(root);
 
 	ok = mib_dbus_identity_broker1_call_get_accounts_sync(
-		mib_client_app_get_broker(app), "0.0",
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
 		mib_client_app_get_correlation_id(app), data, &response,
 		mib_client_app_get_cancellable(app), &error);
 	g_free(data);
@@ -300,7 +303,7 @@ mib_get_linux_broker_version_raw(MIBClientApp *app,
 	}
 
 	ok = mib_dbus_identity_broker1_call_get_linux_broker_version_sync(
-		mib_client_app_get_broker(app), "0.0",
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
 		mib_client_app_get_correlation_id(app), params_data, &response,
 		mib_client_app_get_cancellable(app), &error);
 	g_free(params_data);
@@ -443,7 +446,7 @@ mib_acquire_token_silent_raw(MIBClientApp *app, JsonObject *account,
 	json_object_unref(params_obj);
 
 	ok = mib_dbus_identity_broker1_call_acquire_token_silently_sync(
-		mib_client_app_get_broker(app), "0.0",
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
 		mib_client_app_get_correlation_id(app), data, &response,
 		mib_client_app_get_cancellable(app), &error);
 	g_free(data);
@@ -532,8 +535,9 @@ static JsonObject *mib_acquire_token_interactive_raw(
 	mibdbusIdentityBroker1 *gd_proxy = mib_client_app_get_broker(app);
 	g_dbus_proxy_set_default_timeout((GDBusProxy *)gd_proxy, G_MAXINT);
 	ok = mib_dbus_identity_broker1_call_acquire_token_interactively_sync(
-		gd_proxy, "0.0", mib_client_app_get_correlation_id(app), data,
-		&response, mib_client_app_get_cancellable(app), &error);
+		gd_proxy, MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
+		mib_client_app_get_correlation_id(app), data, &response,
+		mib_client_app_get_cancellable(app), &error);
 	g_dbus_proxy_set_default_timeout((GDBusProxy *)gd_proxy, -1);
 
 	g_free(data);
@@ -643,7 +647,7 @@ static JsonObject *mib_acquire_prt_sso_cookie_raw(MIBClientApp *app,
 	json_object_unref(auth_params);
 
 	ok = mib_dbus_identity_broker1_call_acquire_prt_sso_cookie_sync(
-		mib_client_app_get_broker(app), "0.0",
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
 		mib_client_app_get_correlation_id(app), data, &response,
 		mib_client_app_get_cancellable(app), &error);
 	g_free(data);
@@ -701,7 +705,7 @@ static JsonObject *mib_generate_signed_http_request_raw(
 	json_object_unref(params);
 
 	ok = mib_dbus_identity_broker1_call_generate_signed_http_request_sync(
-		mib_client_app_get_broker(app), "0.0",
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
 		mib_client_app_get_correlation_id(app), params_data, &response,
 		mib_client_app_get_cancellable(app), &error);
 
@@ -765,7 +769,7 @@ static int mib_remove_account_raw(MIBClientApp *app, JsonObject *account)
 	gchar *data = json_object_to_string(params);
 	json_object_unref(params);
 	ok = mib_dbus_identity_broker1_call_remove_account_sync(
-		mib_client_app_get_broker(app), "0.0",
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
 		mib_client_app_get_correlation_id(app), data, &response,
 		mib_client_app_get_cancellable(app), &error);
 	g_free(data);
