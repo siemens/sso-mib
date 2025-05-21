@@ -3,7 +3,7 @@ _sso_mib_tool_completion() {
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   opts="-a -A -d -h -I -P -s -t"
-  commands="getAccounts acquirePrtSsoCookie acquireTokenInteractive acquireTokenSilent getLinuxBrokerVersion generateSignedHttpRequest"
+  commands="getAccounts removeAccount acquirePrtSsoCookie acquireTokenInteractive acquireTokenSilent getLinuxBrokerVersion generateSignedHttpRequest"
 
   # If it's the first argument and not an option, suggest commands
   if [[ ${COMP_CWORD} -eq 1 ]] && [[ "$cur" != -* ]]; then
