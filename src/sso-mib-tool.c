@@ -10,6 +10,7 @@
 #include <json-glib/json-glib.h>
 
 #include "sso-mib.h"
+#include "base64.h"
 
 // Microsoft Edge on Linux ID
 #define CLIENT_ID_DEFAULT "d7b530a4-7680-4c23-a8bf-c52c121d2e87"
@@ -31,28 +32,21 @@ static void sig_handler(int signo)
 static void print_decoded_jwt(const gchar *jwt)
 {
 	gchar **parts;
-	guchar *decoded;
+	unsigned char *decoded = NULL;
 	gsize len;
 	gchar *suffix = "";
 	parts = g_strsplit(jwt, ".", 3);
 	for (int i = 0; i < 2; ++i) {
-		decoded = g_base64_decode(parts[i], &len);
+		const size_t inlen = strlen(parts[i]);
+		decoded = malloc(BASE64_DECODE_OUT_SIZE(inlen));
+		len = base64_decode(parts[i], inlen, decoded);
 		if (!len) {
 			g_print("Error: Failed to decode JWT\n");
+			free(decoded);
 			return;
 		}
-		// TODO: dirty workaround for RFC 2045 vs RFC 4568
-		// g_base64_decode decodes according to RFC 2045 which strictly
-		// requires padding. However the data is encoded as RFC 4568 without
-		// padding. Hence, we might loose the last 1 or 2 characters
-		const int input_len = strlen(parts[i]);
-		if (input_len % 3 == 1) {
-			suffix = "}";
-		} else if (input_len % 3 == 2) {
-			suffix = "\"}";
-		}
 		g_print("%.*s%s\n", (int)len, decoded, suffix);
-		g_free(decoded);
+		free(decoded);
 	}
 	g_strfreev(parts);
 }
