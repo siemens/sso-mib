@@ -48,9 +48,9 @@ static void mib_account_init(MIB_ARG_UNUSED MIBAccount *self)
 
 MIBAccount *mib_account_from_json(JsonObject *account_json)
 {
-	const char *members[] = { "clientInfo",		"environment",	  "givenName",
-							  "homeAccountId",	"localAccountId", "name",
-							  "passwordExpiry", "realm",		  "username" };
+	const char *members[] = { "environment",	"givenName", "homeAccountId",
+							  "localAccountId", "name",		 "passwordExpiry",
+							  "realm",			"username" };
 	int ret = 0;
 	for (size_t i = 0; i < sizeof(members) / sizeof(members[0]); i++) {
 		if (!json_object_has_member(account_json, members[i]))
@@ -58,8 +58,6 @@ MIBAccount *mib_account_from_json(JsonObject *account_json)
 	}
 
 	MIBAccount *account = g_object_new(MIB_TYPE_ACCOUNT, NULL);
-	account->client_info =
-		g_strdup(json_object_get_string_member(account_json, "clientInfo"));
 	account->environment =
 		g_strdup(json_object_get_string_member(account_json, "environment"));
 	account->given_name =
@@ -85,6 +83,10 @@ MIBAccount *mib_account_from_json(JsonObject *account_json)
 		account->family_name =
 			g_strdup(json_object_get_string_member(account_json, "familyName"));
 	}
+	if (json_object_has_member(account_json, "clientInfo")) {
+		account->client_info =
+			g_strdup(json_object_get_string_member(account_json, "clientInfo"));
+	}
 	return account;
 }
 
@@ -92,8 +94,10 @@ JsonObject *mib_account_to_json(const MIBAccount *account)
 {
 	JsonBuilder *builder = json_builder_new();
 	json_builder_begin_object(builder);
-	json_builder_set_member_name(builder, "clientInfo");
-	json_builder_add_string_value(builder, account->client_info);
+	if (account->client_info) {
+		json_builder_set_member_name(builder, "clientInfo");
+		json_builder_add_string_value(builder, account->client_info);
+	}
 	json_builder_set_member_name(builder, "environment");
 	json_builder_add_string_value(builder, account->environment);
 	json_builder_set_member_name(builder, "familyName");
