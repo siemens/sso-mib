@@ -25,6 +25,7 @@ struct _MIBClientApp {
 	gchar client_id[UUID_STR_LEN];
 	gchar correlation_id[UUID_STR_LEN];
 	gchar *authority;
+	gchar *redirect_uri;
 	mibdbusIdentityBroker1 *broker;
 	GCancellable *cancellable;
 	int log_level;
@@ -43,6 +44,7 @@ static void mib_client_app_finalize(GObject *gobject)
 		g_clear_object(&priv->cancellable);
 	}
 	g_clear_pointer(&priv->authority, g_free);
+	g_clear_pointer(&priv->redirect_uri, g_free);
 	G_OBJECT_CLASS(mib_client_app_parent_class)->finalize(gobject);
 }
 
@@ -80,6 +82,7 @@ MIBClientApp *mib_public_client_app_new(const gchar *client_id,
 	uuid_generate_random(correlation_id);
 	uuid_unparse_lower(correlation_id, self->correlation_id);
 	self->authority = g_strdup(authority);
+	self->redirect_uri = mib_client_app_get_broker_redirect_uri(self);
 
 	if (cancellable) {
 		self->cancellable = g_object_ref(cancellable);
@@ -127,9 +130,7 @@ static JsonObject *mib_client_app_get_accounts_raw(MIBClientApp *app)
 	json_builder_set_member_name(builder, "clientId");
 	json_builder_add_string_value(builder, mib_client_app_get_client_id(app));
 	json_builder_set_member_name(builder, "redirectUri");
-	char *redirect_uri = mib_client_app_get_broker_redirect_uri(app);
-	json_builder_add_string_value(builder, redirect_uri);
-	g_free(redirect_uri);
+	json_builder_add_string_value(builder, app->redirect_uri);
 	json_builder_end_object(builder);
 	root = json_builder_get_root(builder);
 	g_object_unref(builder);
@@ -339,7 +340,7 @@ static JsonObject *
 prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 						JsonArray *scopes, const gchar *claims_challenge,
 						JsonObject *auth_scheme, const gchar *renew_token,
-						const gchar *redirect_uri, JsonObject *extra_params)
+						JsonObject *extra_params)
 {
 	// {
 	//  'accessTokenToRenew': renew_token,
@@ -352,18 +353,12 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	//  'requestedScopes': ["https://graph.microsoft.com/.default"],
 	//  'username': account['username'],
 	// }
-	gchar *_redirect_uri;
 
 	JsonNode *account_node = json_node_new(JSON_NODE_OBJECT);
 	json_node_set_object(account_node, account);
 	JsonNode *scopes_node = json_node_new(JSON_NODE_ARRAY);
 	json_node_set_array(scopes_node, scopes);
 	const gchar *username = json_object_get_string_member(account, "username");
-	if (redirect_uri == NULL) {
-		_redirect_uri = mib_client_app_get_broker_redirect_uri(app);
-	} else {
-		_redirect_uri = g_strdup(redirect_uri);
-	}
 
 	JsonBuilder *builder = json_builder_new();
 	json_builder_begin_object(builder);
@@ -397,7 +392,7 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 		json_builder_add_value(builder, extra_params_node);
 	}
 	json_builder_set_member_name(builder, "redirectUri");
-	json_builder_add_string_value(builder, _redirect_uri);
+	json_builder_add_string_value(builder, app->redirect_uri);
 	json_builder_set_member_name(builder, "requestedScopes");
 	json_builder_add_value(builder, scopes_node);
 	json_builder_set_member_name(builder, "username");
@@ -409,7 +404,6 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	json_object_ref(auth_params);
 	g_object_unref(builder);
 	json_node_unref(root);
-	g_free(_redirect_uri);
 	return auth_params;
 }
 
@@ -422,9 +416,8 @@ mib_acquire_token_silent_raw(MIBClientApp *app, JsonObject *account,
 	gchar *response;
 	gboolean ok;
 	JsonObject *token;
-	JsonObject *auth_params =
-		prepare_prt_auth_params(app, account, scopes, claims_challenge,
-								auth_scheme, renew_token, NULL, NULL);
+	JsonObject *auth_params = prepare_prt_auth_params(
+		app, account, scopes, claims_challenge, auth_scheme, renew_token, NULL);
 	JsonNode *auth_params_node = json_node_new(JSON_NODE_OBJECT);
 	json_node_set_object(auth_params_node, auth_params);
 	json_object_unref(auth_params);
@@ -498,7 +491,7 @@ static JsonObject *mib_acquire_token_interactive_raw(
 
 	JsonObject *auth_params =
 		prepare_prt_auth_params(app, account, scopes, claims_challenge,
-								auth_scheme, NULL, NULL, extra_params);
+								auth_scheme, NULL, extra_params);
 
 	/* TODO: check if this is the correct key */
 	if (prompt != MIB_PROMPT_UNSET) {
@@ -629,8 +622,8 @@ static JsonObject *mib_acquire_prt_sso_cookie_raw(MIBClientApp *app,
 	gchar *response;
 	gboolean ok;
 
-	JsonObject *auth_params = prepare_prt_auth_params(
-		app, account, scopes, NULL, NULL, NULL, NULL, NULL);
+	JsonObject *auth_params =
+		prepare_prt_auth_params(app, account, scopes, NULL, NULL, NULL, NULL);
 	JsonObject *params =
 		prepare_prt_sso_request_data(account, auth_params, sso_url);
 	debug_print_json_object("mib_acquire_prt_sso_cookie_raw", "request",
