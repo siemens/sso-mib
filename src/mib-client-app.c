@@ -210,8 +210,10 @@ GSList *mib_client_app_get_accounts(MIBClientApp *self)
 	for (guint i = 0; i < json_array_get_length(accounts_array); i++) {
 		JsonObject *account = json_array_get_object_element(accounts_array, i);
 		mib_account = mib_account_from_json(account);
-		if (!mib_account)
+		if (!mib_account) {
+			g_warning("error parsing account data");
 			break;
+		}
 		accounts_list = g_slist_append(accounts_list, mib_account);
 	}
 	json_object_unref(accounts);
