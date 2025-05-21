@@ -265,6 +265,14 @@ gchar *mib_client_app_get_broker_redirect_uri(const MIBClientApp *self)
 	return g_strdup_printf(MIB_MS_BROKER_REDIRECT_URI_FMT, self->client_id);
 }
 
+void mib_client_app_set_redirect_uri(MIBClientApp *self, const gchar *uri)
+{
+	g_assert(self);
+	g_assert(uri);
+	g_free(self->redirect_uri);
+	self->redirect_uri = g_strdup(uri);
+}
+
 int mib_client_app_get_enforce_interactive(const MIBClientApp *self)
 {
 	g_assert(self);

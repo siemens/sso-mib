@@ -102,6 +102,18 @@ PUBLIC_API gchar *
 mib_client_app_get_broker_redirect_uri(const MIBClientApp *self);
 
 /**
+ * \brief Override the address to return to upon receiving a response from the authority.
+ *
+ * If this method is not called, the broker redirect URI (returned by
+ * \ref mib_client_app_get_broker_redirect_uri ) is used.
+ *
+ * \note The redirect URI must be in the list of allowed redirect URIs for
+ *       the target application. Otherwise, the token acquisition will not work.
+ */
+PUBLIC_API void
+mib_client_app_set_redirect_uri(MIBClientApp* self, const gchar* uri);
+
+/**
  * \brief Get the version of the Linux broker
  *
  * \dbuscall{getLinuxBrokerVersion}
