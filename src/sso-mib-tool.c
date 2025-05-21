@@ -247,6 +247,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	command = argv[1];
+	if (strcmp(command, "-h") == 0) {
+		print_help(argv[0]);
+		return 0;
+	}
 	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:s:t:")) != -1)
 		switch (c) {
 		case 'a':
