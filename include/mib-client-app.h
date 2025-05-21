@@ -232,6 +232,18 @@ mib_client_app_acquire_prt_sso_cookie(MIBClientApp *app, MIBAccount *account,
 PUBLIC_API gchar *mib_client_app_generate_signed_http_request(
 	MIBClientApp *app, MIBAccount *account, MIBPopParams *pop_params);
 
+/**
+ * \brief Signout the account and clear linked token cache
+ *
+ * \dbuscall{removeAccount}
+ *
+ * \param app client app object
+ * \param account mib account reference
+ * \return 0 on success, -1 on error
+ */
+PUBLIC_API int mib_client_app_remove_account(MIBClientApp *app,
+											 MIBAccount *account);
+
 G_END_DECLS
 
 /** @} */
