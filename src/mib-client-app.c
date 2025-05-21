@@ -749,3 +749,48 @@ err:
 	json_object_unref(token);
 	return access_token;
 }
+
+static int mib_remove_account_raw(MIBClientApp *app, JsonObject *account)
+{
+	GError *error = NULL;
+	gboolean ok;
+	gchar *response = NULL;
+
+	JsonObject *params = json_object_new();
+	json_object_set_string_member(params, "clientId", app->client_id);
+	json_object_set_object_member(params, "account", json_object_ref(account));
+
+	debug_print_json_object("mib_remove_account_raw", "request", params);
+
+	gchar *data = json_object_to_string(params);
+	json_object_unref(params);
+	ok = mib_dbus_identity_broker1_call_remove_account_sync(
+		mib_client_app_get_broker(app), "0.0",
+		mib_client_app_get_correlation_id(app), data, &response,
+		mib_client_app_get_cancellable(app), &error);
+	g_free(data);
+
+	if (!ok) {
+		g_warning("could not remove account: %s", error->message);
+		g_error_free(error);
+		return -1;
+	}
+	JsonObject *resp_json = json_object_from_string(response);
+	g_free(response);
+	debug_print_json_object("mib_remove_account_raw", "response", resp_json);
+	json_object_unref(resp_json);
+	return 0;
+}
+
+int mib_client_app_remove_account(MIBClientApp *app, MIBAccount *account)
+{
+	g_assert(app);
+	g_assert(account);
+	int ret = 0;
+
+	JsonObject *account_json = mib_account_to_json(account);
+	ret = mib_remove_account_raw(app, account_json);
+
+	json_object_unref(account_json);
+	return ret;
+}
