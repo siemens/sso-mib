@@ -71,7 +71,11 @@ pkg_mod.generate(
 
 sso_mib_tool = executable(
   'sso-mib-tool',
-  'src/sso-mib-tool.c',
+  [
+    'src/base64.h',
+    'src/base64.c',
+    'src/sso-mib-tool.c',
+  ],
   install : true,
   include_directories : public_headers,
   link_with : [libsso_mib],
