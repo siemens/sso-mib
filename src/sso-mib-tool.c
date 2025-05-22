@@ -393,26 +393,35 @@ int main(int argc, char **argv)
 		MIBAccount *account = g_slist_nth_data(accounts, account_idx);
 		MIBPrt *prt_token = mib_client_app_acquire_token_silent(
 			app, account, scopes, NULL, auth_params, renew_token);
-		if (auth_params)
-			g_object_unref(auth_params);
-		if (prt_token) {
-			print_prt_token(prt_token, decode);
-			g_object_unref(prt_token);
-		}
 		g_slist_free_full(scopes, g_free);
 		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+		if (auth_params)
+			g_object_unref(auth_params);
+		if (!prt_token) {
+			g_print("Error[acquireTokenSilent]: Failed to acquire token\n");
+			g_object_unref(app);
+			g_object_unref(cancellable);
+			return 1;
+		}
+		print_prt_token(prt_token, decode);
+		g_object_unref(prt_token);
 	} else if (strcmp(command, "acquireTokenInteractive") == 0) {
 		GSList *scopes = NULL;
 		scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
 		MIBPrt *prt_token = mib_client_app_acquire_token_interactive(
 			app, scopes, MIB_PROMPT_CONSENT, NULL, NULL, NULL, auth_params);
+		g_slist_free_full(scopes, g_free);
 		if (auth_params)
 			g_object_unref(auth_params);
-		if (prt_token) {
-			print_prt_token(prt_token, decode);
-			g_object_unref(prt_token);
+		if (!prt_token) {
+			g_print(
+				"Error[acquireTokenInteractive]: Failed to acquire token\n");
+			g_object_unref(app);
+			g_object_unref(cancellable);
+			return 1;
 		}
-		g_slist_free_full(scopes, g_free);
+		print_prt_token(prt_token, decode);
+		g_object_unref(prt_token);
 	} else if (strcmp(command, "getLinuxBrokerVersion") == 0) {
 		gchar *version =
 			mib_client_app_get_linux_broker_version(app, MSAL_CPP_VERSION);
@@ -421,6 +430,7 @@ int main(int argc, char **argv)
 			g_free(version);
 		} else {
 			g_print("Error[getLinuxBrokerVersion]: Failed to get version\n");
+			return 1;
 		}
 	} else if (strcmp(command, "generateSignedHttpRequest") == 0) {
 		GSList *accounts = mib_client_app_get_accounts(app);
@@ -446,6 +456,7 @@ int main(int argc, char **argv)
 		gchar *token = mib_client_app_generate_signed_http_request(app, account,
 																   auth_params);
 		g_object_unref(auth_params);
+		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 		if (token) {
 			if (decode) {
 				print_decoded_jwt(token);
@@ -457,8 +468,10 @@ int main(int argc, char **argv)
 			g_print(
 				"Error[generateSignedHttpRequest]: Failed to generate signed "
 				"HTTP request\n");
+			g_object_unref(app);
+			g_object_unref(cancellable);
+			return 1;
 		}
-		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 	} else {
 		g_print("Unknown command: %s\n", command);
 		g_object_unref(app);
