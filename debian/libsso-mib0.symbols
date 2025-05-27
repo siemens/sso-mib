@@ -21,7 +21,9 @@ libsso-mib.so.0 libsso-mib0 #MINVER#
  mib_client_app_get_correlation_id@Base 0.5.0
  mib_client_app_get_enforce_interactive@Base 0.5.0
  mib_client_app_get_linux_broker_version@Base 0.5.0
+ mib_client_app_remove_account@Base 0.6.0
  mib_client_app_set_enforce_interactive@Base 0.5.0
+ mib_client_app_set_redirect_uri@Base 0.6.0
  mib_pop_params_new@Base 0.5.0
  mib_pop_params_set_kid@Base 0.5.0
  mib_pop_params_set_shr_claims@Base 0.5.0
