@@ -3,7 +3,12 @@
 project(
   'sso-mib',
   'c',
-  version : '0.7.0',
+  version : '$Format:%H$'.contains ('Format:%')?
+      '0.0.1': '$Format:%(describe:match=v*.*.*)$'.substring(1),
+      # The version string must have the format %d.%d.%d,
+      # fallback to 0.0.1
+      # git-archive will expand at most one $Format:%(describe)$
+      # to avoid denial-of-service attacks
   default_options : ['c_std=gnu11', 'warning_level=3'],
   license : 'GPL-2.0+ OR LGPL-2.1+ OR MIT',
   license_files : [
