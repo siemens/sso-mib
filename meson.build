@@ -78,7 +78,8 @@ sso_mib_tool = executable(
   install : true,
   include_directories : public_headers,
   link_with : [libsso_mib],
-  dependencies: [glibdep, giodep, jsondep, uuiddep, jwtdep]
+  dependencies: [glibdep, giodep, jsondep, uuiddep, jwtdep],
+  install_tag : 'tool'
 )
 
 gch_smtp_office365 = executable(
@@ -87,7 +88,8 @@ gch_smtp_office365 = executable(
   install : true,
   include_directories : public_headers,
   link_with : [libsso_mib],
-  dependencies: [glibdep, giodep]
+  dependencies: [glibdep, giodep],
+  install_tag : 'git-cred-helper'
 )
 
 if get_option('documentation')
