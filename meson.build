@@ -85,7 +85,8 @@ sso_mib_tool = executable(
   install : true,
   include_directories : public_headers,
   link_with : [libsso_mib],
-  dependencies: [glibdep, giodep, jsondep, uuiddep]
+  dependencies: [glibdep, giodep, jsondep, uuiddep],
+  install_tag : 'tool'
 )
 
 if get_option('documentation')
