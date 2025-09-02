@@ -3,10 +3,20 @@
 project(
   'sso-mib',
   'c',
-  version : '$Format:%H$'.contains ('Format:%')?
-      '0.0.1': '$Format:%(describe:match=v*.*.*)$'.substring(1),
+  version : ('$Format:%H$'.contains ('Format:%')?
+      run_command([
+        'git',
+        'describe',
+        '--match=v*.*.*',
+        '--abbrev=0'],
+        check: true,
+        env: {
+          'GIT_WORK_TREE': meson.project_source_root ()
+        }
+      ).stdout().strip() :
+     '$Format:%(describe:match=v*.*.*)$').substring(1),
       # The version string must have the format %d.%d.%d,
-      # fallback to 0.0.1
+      # fallback to highest version tag.
       # git-archive will expand at most one $Format:%(describe)$
       # to avoid denial-of-service attacks
   default_options : ['c_std=gnu11', 'warning_level=3'],
