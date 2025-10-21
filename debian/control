@@ -42,3 +42,12 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
 Description: Single-Sign-On using Microsoft Identity Broker (tool)
+
+Package: sso-mib-gch-smtp-o365
+Architecture: any
+Multi-Arch: foreign
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Suggests: git
+Description: Git credential helper to authenticate SMTP on O365

@@ -82,6 +82,15 @@ sso_mib_tool = executable(
   dependencies: [glibdep, giodep, jsondep, uuiddep]
 )
 
+gch_smtp_office365 = executable(
+  'sso-mib-gch-smtp-o365',
+  'examples/smtp-o365/main.c',
+  install : true,
+  include_directories : public_headers,
+  link_with : [libsso_mib],
+  dependencies: [glibdep, giodep]
+)
+
 if get_option('documentation')
   subdir('docs')
 endif
