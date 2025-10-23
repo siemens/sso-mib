@@ -5,6 +5,12 @@ project(
   'c',
   version : '0.6.0',
   default_options : ['c_std=c11', 'warning_level=3'],
+  license : 'GPL-2.0+ OR LGPL-2.1+ OR MIT',
+  license_files : [
+    'LICENSES/GPL-2.0-only.txt',
+    'LICENSES/LGPL-2.1-only.txt',
+    'LICENSES/MIT.txt'
+  ]
 )
 project_description = 'Library to interact with the Microsoft Device Broker for SSO'
 
@@ -79,7 +85,8 @@ sso_mib_tool = executable(
   install : true,
   include_directories : public_headers,
   link_with : [libsso_mib],
-  dependencies: [glibdep, giodep, jsondep, uuiddep]
+  dependencies: [glibdep, giodep, jsondep, uuiddep],
+  install_tag : 'tool'
 )
 
 gch_smtp_office365 = executable(
