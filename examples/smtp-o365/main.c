@@ -5,13 +5,13 @@
  * This example showcases a fully-functional git credential helper to
  * authenticate git send-email on Office365 using tokens from the broker.
  * 
- * The following data needs to be set via environment variables:
+ * The following data can also be set via environment variables:
  *  - MIB_GCH_SMTP_AUTHORITY : authority to run OAUTH2 against
  *  - MIB_GCH_SMTP_CLIENT_ID : client-id of the application
  * 
  * Example entry in .gitconfig
  * [credential "smtp://"]
- * helper = !sso-mib-gch-smtp-o365
+ * helper = !sso-mib-gch-smtp-o365 [<client-id>] [<authority>]
  */
 
 #include "sso-mib.h"
@@ -19,6 +19,7 @@
 
 #define MAX_LINE 512
 #define MAX_VAL 256
+#define MAX_CMD_LEN 16
 
 #define APP_REDIRECT_URI \
 	"https://login.microsoftonline.com/common/oauth2/nativeclient"
@@ -53,7 +54,7 @@ void parse_git_cred_input(GitCredInput *out)
 	}
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	MIBClientApp *app = NULL;
 	GSList *scopes = NULL;
@@ -62,13 +63,32 @@ int main()
 	GitCredInput input = { .username = "", .protocol = "" };
 	const gchar *authority = getenv("MIB_GCH_SMTP_AUTHORITY");
 	const gchar *client_id = getenv("MIB_GCH_SMTP_CLIENT_ID");
+	const gchar *cmd = argv[argc - 1];
+
+	if (!strncmp(cmd, "approve", MAX_CMD_LEN) ||
+		!strncmp(cmd, "reject", MAX_CMD_LEN) ||
+		!strncmp(cmd, "capability", MAX_CMD_LEN)) {
+		// no output expected
+		return 0;
+	}
+
+	if (argc >= 3) {
+		client_id = argv[1];
+	}
+	if (argc >= 4) {
+		authority = argv[2];
+	}
 
 	if (!authority) {
-		printf("missing authority, set via env-var 'MIB_GCH_SMTP_AUTHORITY'\n");
+		fprintf(
+			stderr,
+			"missing authority, set via CLI or env-var 'MIB_GCH_SMTP_AUTHORITY'\n");
 		return 1;
 	}
 	if (!client_id) {
-		printf("missing client-id, set via env-var 'MIB_GCH_SMTP_CLIENT_ID'\n");
+		fprintf(
+			stderr,
+			"missing client-id, set via CLI or env-var 'MIB_GCH_SMTP_CLIENT_ID'\n");
 		return 1;
 	}
 
