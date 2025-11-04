@@ -54,7 +54,8 @@ jobs:
             libgio3.0-cil-dev \
             libjson-glib-dev \
             libdbus-1-dev \
-            uuid-dev
+            uuid-dev \
+            libjwt-dev
 
       - name: build components
         run: |

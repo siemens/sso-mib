@@ -8,9 +8,9 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <json-glib/json-glib.h>
+#include <jwt.h>
 
 #include "sso-mib.h"
-#include "base64.h"
 
 // Microsoft Edge on Linux ID
 #define CLIENT_ID_DEFAULT "d7b530a4-7680-4c23-a8bf-c52c121d2e87"
@@ -29,26 +29,24 @@ static void sig_handler(int signo)
 	}
 }
 
-static void print_decoded_jwt(const gchar *jwt)
+static void print_decoded_jwt(const gchar *token)
 {
-	gchar **parts;
-	unsigned char *decoded = NULL;
-	gsize len;
-	gchar *suffix = "";
-	parts = g_strsplit(jwt, ".", 3);
-	for (int i = 0; i < 2; ++i) {
-		const size_t inlen = strlen(parts[i]);
-		decoded = malloc(BASE64_DECODE_OUT_SIZE(inlen));
-		len = base64_decode(parts[i], inlen, decoded);
-		if (!len) {
-			g_print("Error: Failed to decode JWT\n");
-			free(decoded);
-			return;
-		}
-		g_print("%.*s%s\n", (int)len, decoded, suffix);
-		free(decoded);
+	jwt_t *jwt = NULL;
+	int ret = 0;
+	char *grants = NULL;
+	char *hdrs = NULL;
+	ret = jwt_decode(&jwt, token, NULL, 0);
+	if (ret != 0) {
+		g_print("Error: Failed to decode JWT\n");
+		return;
 	}
-	g_strfreev(parts);
+	hdrs = jwt_get_headers_json(jwt, NULL);
+	grants = jwt_get_grants_json(jwt, NULL);
+	g_print("%s\n", hdrs);
+	g_print("%s\n", grants);
+	free(hdrs);
+	free(grants);
+	jwt_free(jwt);
 }
 
 static void print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)

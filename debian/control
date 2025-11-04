@@ -12,6 +12,7 @@ Build-Depends:
  libjson-glib-dev,
  libdbus-1-dev,
  uuid-dev,
+ libjwt-dev,
 Standards-Version: 4.6.2
 Homepage: https://code.siemens.com/felix.moessbauer/sso-mib/
 Vcs-Browser: https://code.siemens.com/felix.moessbauer/sso-mib/
