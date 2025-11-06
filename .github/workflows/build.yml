@@ -71,7 +71,7 @@ jobs:
   package:
     strategy:
       matrix:
-        distro: ["debian:bookworm", "debian:trixie", "ubuntu:noble"]
+        distro: ["debian:bookworm", "debian:trixie", "debian:forky", "ubuntu:noble"]
     runs-on: ubuntu-24.04
     container: ${{ matrix.distro }}
     permissions:
