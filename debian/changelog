@@ -1,3 +1,10 @@
+sso-mib (0.7.0) unstable; urgency=medium
+
+  * add git credential helper for SMTP on O365
+  * no change in library
+
+ -- Felix Moessbauer <felix.moessbauer@siemens.com>  Thu, 06 Nov 2025 15:59:50 +0100
+
 sso-mib (0.6.0) unstable; urgency=medium
 
   * Update to 0.6.0 release 
