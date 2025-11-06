@@ -1,4 +1,4 @@
-![API Docs](https://img.shields.io/badge/API-documented-blue?link=https%3A%2F%2Fsiemens.github.io%2Fsso-mib%2F)
+[![API Docs](https://img.shields.io/badge/API-documented-blue)](https://siemens.github.io/sso-mib/)
 
 # Single-Sign-On using Microsoft Identity Broker (SSO-MIB)
 
