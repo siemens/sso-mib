@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+env:
+  LIBJWT3_VERSION: "3.2.3"
+  LIBJWT3_SHA256: c6d8a4ead0321317937cc29d8ebc5be48d114d02e007711bb2d4cca5d2a6d713
+
 jobs:
   reuse-and-codestyle:
     runs-on: ubuntu-24.04
@@ -105,6 +109,39 @@ jobs:
         with:
           subject-path: |
             linux-amd64-deb/*.deb
+
+  build-with-libjwt3:
+    runs-on: ubuntu-24.04
+    container: "debian:trixie"
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential meson cmake ninja-build curl ca-certificates \
+            libjansson-dev libssl-dev \
+            libgio-2.0-dev libjson-glib-dev libdbus-1-dev uuid-dev
+      - name: build libjwt3
+        run: |
+          curl -L -q https://github.com/benmcollins/libjwt/releases/download/v${LIBJWT3_VERSION}/libjwt-${LIBJWT3_VERSION}.tar.xz \
+            > /tmp/libjwt-${LIBJWT3_VERSION}.tar.xz
+          echo "$LIBJWT3_SHA256 /tmp/libjwt-${LIBJWT3_VERSION}.tar.xz" | sha256sum -c
+          WORKDIR=$(pwd)
+          cd /tmp
+          tar -xf libjwt-${LIBJWT3_VERSION}.tar.xz
+          cd libjwt-${LIBJWT3_VERSION}
+          cmake -B build -GNinja
+          cmake --build build
+          cmake --install build
+          cd $WORKDIR
+      - name: build sso-mib-tool
+        run: | 
+          meson -Dlibjwt=enabled build
+          cd build && ninja sso-mib-tool
 
   deploy:
     runs-on: ubuntu-24.04
