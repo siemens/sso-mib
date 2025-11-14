@@ -8,7 +8,9 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <json-glib/json-glib.h>
+#ifdef WITH_LIBJWT
 #include <jwt.h>
+#endif
 
 #include "sso-mib.h"
 
@@ -29,6 +31,7 @@ static void sig_handler(int signo)
 	}
 }
 
+#ifdef WITH_LIBJWT
 static void print_decoded_jwt(const gchar *token)
 {
 	jwt_t *jwt = NULL;
@@ -48,6 +51,12 @@ static void print_decoded_jwt(const gchar *token)
 	free(grants);
 	jwt_free(jwt);
 }
+#else
+static void print_decoded_jwt(const gchar *token)
+{
+	g_printerr("token decoding requires libjwt (dependency missing)\n");
+}
+#endif
 
 static void print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)
 {
