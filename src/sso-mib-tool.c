@@ -32,24 +32,65 @@ static void sig_handler(int signo)
 }
 
 #ifdef WITH_LIBJWT
-static void print_decoded_jwt(const gchar *token)
+#if LIBJWT_VERSION_MAJOR == 1 || LIBJWT_VERSION_MAJOR == 2
+static int decode_headers_and_claims(const gchar *token, char **grants,
+									 char **hdrs)
 {
 	jwt_t *jwt = NULL;
-	int ret = 0;
+	int ret = jwt_decode(&jwt, token, NULL, 0);
+	if (ret != 0)
+		return ret;
+	*hdrs = jwt_get_headers_json(jwt, NULL);
+	*grants = jwt_get_grants_json(jwt, NULL);
+	jwt_free(jwt);
+	return 0;
+}
+#else
+struct jwt_cb_ctx {
+	char **grants;
+	char **hdrs;
+};
+
+static int on_check_cb(jwt_t *jwt, jwt_config_t *config)
+{
+	jwt_value_t header_val;
+	jwt_value_t claims_val;
+	struct jwt_cb_ctx *ctx = config->ctx;
+
+	jwt_set_GET_JSON(&header_val, NULL);
+	if (jwt_header_get(jwt, &header_val) == JWT_VALUE_ERR_NONE) {
+		*ctx->hdrs = header_val.json_val;
+	}
+	jwt_set_GET_JSON(&claims_val, NULL);
+	if (jwt_claim_get(jwt, &claims_val) == JWT_VALUE_ERR_NONE)
+		*ctx->grants = claims_val.json_val;
+	return 0;
+}
+
+static int decode_headers_and_claims(const gchar *token, char **grants,
+									 char **hdrs)
+{
+	struct jwt_cb_ctx ctx = { .grants = grants, .hdrs = hdrs };
+	jwt_checker_t *checker = jwt_checker_new();
+	jwt_checker_setcb(checker, on_check_cb, &ctx);
+	jwt_checker_verify(checker, token);
+	jwt_checker_free(checker);
+	return 0;
+}
+#endif
+
+static void print_decoded_jwt(const gchar *token)
+{
 	char *grants = NULL;
 	char *hdrs = NULL;
-	ret = jwt_decode(&jwt, token, NULL, 0);
-	if (ret != 0) {
+	if (decode_headers_and_claims(token, &grants, &hdrs) != 0) {
 		g_print("Error: Failed to decode JWT\n");
 		return;
 	}
-	hdrs = jwt_get_headers_json(jwt, NULL);
-	grants = jwt_get_grants_json(jwt, NULL);
 	g_print("%s\n", hdrs);
 	g_print("%s\n", grants);
 	free(hdrs);
 	free(grants);
-	jwt_free(jwt);
 }
 #else
 static void print_decoded_jwt(const gchar *token)
