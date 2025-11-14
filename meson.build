@@ -38,7 +38,9 @@ glibdep = dependency('glib-2.0')
 giodep = dependency('gio-2.0')
 jsondep = dependency('json-glib-1.0')
 uuiddep = dependency('uuid')
-jwtdep = dependency('libjwt')
+jwtdep = dependency('libjwt', required: get_option('libjwt'))
+
+summary({'libjwt (sso-mib-tool)': jwtdep.found()}, bool_yn: true, section: 'Misc dependencies')
 
 identity_broker = gnome.gdbus_codegen('identity-broker',
   sources: 'dbus/spec/com.microsoft.identity.broker1.xml',
@@ -70,6 +72,16 @@ pkg_mod.generate(
   requires: ['glib-2.0', 'gio-2.0', 'uuid']
 )
 
+sso_mib_tool_cargs_extra = []
+if jwtdep.found()
+  jwtdep_version = jwtdep.version().split('.')
+  sso_mib_tool_cargs_extra += [
+    '-DWITH_LIBJWT',
+    '-DLIBJWT_VERSION_MAJOR=' + jwtdep_version[0],
+    '-DLIBJWT_VERSION_MINOR=' + jwtdep_version[1],
+  ]
+endif
+
 sso_mib_tool = executable(
   'sso-mib-tool',
   [
@@ -78,6 +90,7 @@ sso_mib_tool = executable(
   install : true,
   include_directories : public_headers,
   link_with : [libsso_mib],
+  c_args: sso_mib_tool_cargs_extra,
   dependencies: [glibdep, giodep, jsondep, uuiddep, jwtdep],
   install_tag : 'tool'
 )

@@ -8,3 +8,7 @@ option('examples',
        type: 'boolean',
        value: false,
        description: 'Build the examples [default=false]')
+option('libjwt',
+       description: 'Enable code that depends on libjwt',
+       type: 'feature',
+       value: 'auto')

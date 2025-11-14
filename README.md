@@ -12,6 +12,7 @@ and can be used to obtain Proof-of-Possession tokens for RDP [[MS-RDPBCGR](https
 - JSON-Glib
 - libdbus
 - libuuid
+- libjwt (only for sso-mib-tool)
 
 ## Interface
 
