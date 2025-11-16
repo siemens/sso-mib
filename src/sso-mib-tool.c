@@ -274,6 +274,7 @@ static void print_help(char *name)
 	g_print("  -h            Print this help message\n");
 	g_print("  -I            Enforce interactive token acquire\n");
 	g_print("  -P            Proof-of-Possession parameters\n");
+	g_print("  -r <uri>      OIDC redirect URI\n");
 	g_print("  -s <client_id> Azure client application ID (default: %s)\n",
 			CLIENT_ID_DEFAULT);
 	g_print("  -S <scope>    OIDC scope (repeatable)\n");
@@ -289,6 +290,7 @@ int main(int argc, char **argv)
 	gchar *pop_params = NULL;
 	JsonObject *pop_params_json = NULL;
 	MIBPopParams *auth_params = NULL;
+	gchar *redirect_uri = NULL;
 	GSList *scopes = NULL;
 	char *renew_token = NULL;
 	int decode = 0;
@@ -303,7 +305,7 @@ int main(int argc, char **argv)
 		print_help(argv[0]);
 		return 0;
 	}
-	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:s:S:t:")) != -1)
+	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:r:s:S:t:")) != -1)
 		switch (c) {
 		case 'a':
 			account_idx = atoi(optarg);
@@ -323,6 +325,10 @@ int main(int argc, char **argv)
 			break;
 		case 'P':
 			pop_params = optarg;
+			break;
+		case 'r':
+			g_clear_pointer(&redirect_uri, g_free);
+			redirect_uri = g_strdup(optarg);
 			break;
 		case 's':
 			client_id = optarg;
@@ -360,6 +366,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	mib_client_app_set_enforce_interactive(app, enforce_interactive);
+	if (redirect_uri) {
+		mib_client_app_set_redirect_uri(app, redirect_uri);
+		g_clear_pointer(&redirect_uri, g_free);
+	}
 
 	// register cancellation handler
 	signal(SIGINT, sig_handler);
