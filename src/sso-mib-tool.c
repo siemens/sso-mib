@@ -252,6 +252,14 @@ err:
 	return NULL;
 }
 
+GSList *default_scope_if_empty(GSList *scopes)
+{
+	if (!scopes) {
+		scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
+	}
+	return scopes;
+}
+
 static void print_help(char *name)
 {
 	g_print("Usage: %s COMMAND [OPTION]...\n", basename(name));
@@ -268,6 +276,7 @@ static void print_help(char *name)
 	g_print("  -P            Proof-of-Possession parameters\n");
 	g_print("  -s <client_id> Azure client application ID (default: %s)\n",
 			CLIENT_ID_DEFAULT);
+	g_print("  -S <scope>    OIDC scope (repeatable)\n");
 	g_print("  -t <token>    Renew token\n");
 }
 
@@ -280,6 +289,7 @@ int main(int argc, char **argv)
 	gchar *pop_params = NULL;
 	JsonObject *pop_params_json = NULL;
 	MIBPopParams *auth_params = NULL;
+	GSList *scopes = NULL;
 	char *renew_token = NULL;
 	int decode = 0;
 	int enforce_interactive = 0;
@@ -293,7 +303,7 @@ int main(int argc, char **argv)
 		print_help(argv[0]);
 		return 0;
 	}
-	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:s:t:")) != -1)
+	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:s:S:t:")) != -1)
 		switch (c) {
 		case 'a':
 			account_idx = atoi(optarg);
@@ -317,6 +327,9 @@ int main(int argc, char **argv)
 		case 's':
 			client_id = optarg;
 			break;
+		case 'S':
+			scopes = g_slist_append(scopes, g_strdup(optarg));
+			break;
 		case 't':
 			renew_token = optarg;
 			break;
@@ -328,6 +341,13 @@ int main(int argc, char **argv)
 		}
 	if (!command) {
 		g_print("Error: -c <command> is required\n");
+		return 1;
+	}
+	if (scopes &&
+		(strncmp(command, "acquireToken", strlen("acquireToken")) != 0)) {
+		g_slist_free_full(scopes, g_free);
+		g_printerr(
+			"Error: scopes must only be provided on acquireToken* commands\n");
 		return 1;
 	}
 
@@ -403,8 +423,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	} else if (strcmp(command, "acquirePrtSsoCookie") == 0) {
-		GSList *scopes = NULL;
-		scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
+		scopes = default_scope_if_empty(scopes);
 		GSList *accounts = mib_client_app_get_accounts(app);
 		if (!accounts) {
 			g_print("Error[acquirePrtSsoCookie]: No accounts found\n");
@@ -428,8 +447,7 @@ int main(int argc, char **argv)
 		print_prt_sso_cookie(prt_cookie, decode);
 		g_object_unref(prt_cookie);
 	} else if (strcmp(command, "acquireTokenSilent") == 0) {
-		GSList *scopes = NULL;
-		scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
+		scopes = default_scope_if_empty(scopes);
 		GSList *accounts = mib_client_app_get_accounts(app);
 		if (!accounts) {
 			g_print("Error[acquireTokenSilent]: No accounts found\n");
@@ -454,8 +472,7 @@ int main(int argc, char **argv)
 		print_prt_token(prt_token, decode);
 		g_object_unref(prt_token);
 	} else if (strcmp(command, "acquireTokenInteractive") == 0) {
-		GSList *scopes = NULL;
-		scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
+		scopes = default_scope_if_empty(scopes);
 		MIBPrt *prt_token = mib_client_app_acquire_token_interactive(
 			app, scopes, MIB_PROMPT_CONSENT, NULL, NULL, NULL, auth_params);
 		g_slist_free_full(scopes, g_free);
