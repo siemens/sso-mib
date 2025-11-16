@@ -279,12 +279,15 @@ static void print_help(char *name)
 			CLIENT_ID_DEFAULT);
 	g_print("  -S <scope>    OIDC scope (repeatable)\n");
 	g_print("  -t <token>    Renew token\n");
+	g_print("  -x <authority> Entra ID authority (default: %s)\n",
+			MIB_AUTHORITY_COMMON);
 }
 
 int main(int argc, char **argv)
 {
 	int account_idx = 0;
 	char *account_hint = NULL;
+	const gchar *authority = MIB_AUTHORITY_COMMON;
 	char *command = NULL;
 	gchar *client_id = CLIENT_ID_DEFAULT;
 	gchar *pop_params = NULL;
@@ -305,7 +308,7 @@ int main(int argc, char **argv)
 		print_help(argv[0]);
 		return 0;
 	}
-	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:r:s:S:t:")) != -1)
+	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:r:s:S:t:x:")) != -1)
 		switch (c) {
 		case 'a':
 			account_idx = atoi(optarg);
@@ -339,6 +342,9 @@ int main(int argc, char **argv)
 		case 't':
 			renew_token = optarg;
 			break;
+		case 'x':
+			authority = optarg;
+			break;
 		case '?':
 			print_help(argv[0]);
 			return 1;
@@ -349,15 +355,12 @@ int main(int argc, char **argv)
 		g_print("Error: -c <command> is required\n");
 		return 1;
 	}
-	if (scopes &&
-		(strncmp(command, "acquireToken", strlen("acquireToken")) != 0)) {
+	if (scopes && (strncmp(command, "acquire", strlen("acquire")) != 0)) {
 		g_slist_free_full(scopes, g_free);
 		g_printerr(
-			"Error: scopes must only be provided on acquireToken* commands\n");
-		return 1;
+			"Warning: scopes must only be provided on acquire* commands. Ignoring\n");
 	}
 
-	const gchar *authority = MIB_AUTHORITY_COMMON;
 	cancellable = g_cancellable_new();
 	MIBClientApp *app =
 		mib_public_client_app_new(client_id, authority, cancellable, NULL);
