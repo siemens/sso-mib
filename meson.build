@@ -7,6 +7,7 @@ project(
   default_options : ['c_std=c11', 'warning_level=3'],
 )
 project_description = 'Library to interact with the Microsoft Device Broker for SSO'
+add_project_arguments('-Wno-unused-parameter', language : 'c')
 
 libsso_mib_hdrs = [
   'include/sso-mib.h',
@@ -47,10 +48,16 @@ identity_broker = gnome.gdbus_codegen('identity-broker',
   interface_prefix : 'com.microsoft.',
   namespace : 'mib_dbus',
 )
+identity_broker_obj = static_library(
+  'identity_broker_obj',
+  identity_broker,
+  c_args : ['-Wno-pedantic'],
+  dependencies : [giodep],
+  install : false)
 
 libsso_mib = shared_library(
   meson.project_name(),
-  libsso_mib_src, identity_broker,
+  libsso_mib_src, identity_broker[1],
   install : true,
   c_args : ['-DBUILDING_SSO_MIB=1',
             '-DSSO_MIB_COMPILATION=1',
@@ -58,6 +65,7 @@ libsso_mib = shared_library(
   gnu_symbol_visibility : 'hidden',
   include_directories : public_headers,
   dependencies : [giodep, glibdep, jsondep, uuiddep],
+  link_with : [identity_broker_obj],
   version : meson.project_version(),
   soversion : '0',
 )
