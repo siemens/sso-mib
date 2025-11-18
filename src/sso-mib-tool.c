@@ -4,7 +4,6 @@
  */
 
 #include <libgen.h>
-#include <stdio.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <json-glib/json-glib.h>
