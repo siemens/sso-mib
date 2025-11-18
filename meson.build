@@ -4,7 +4,7 @@ project(
   'sso-mib',
   'c',
   version : '0.7.0',
-  default_options : ['c_std=c11', 'warning_level=3'],
+  default_options : ['c_std=gnu11', 'warning_level=3'],
 )
 project_description = 'Library to interact with the Microsoft Device Broker for SSO'
 add_project_arguments('-Wno-unused-parameter', language : 'c')
