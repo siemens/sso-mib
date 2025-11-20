@@ -33,8 +33,8 @@ Note: for simplicity, this code does not have error handling and cleanup logic.
 ```c
 #include <sso-mib/sso-mib.h>
 
-const gchar* client_id = "<my-client-uuid>";
-const gchar* authority = MIB_AUTHORITY_COMMON;
+const gchar *client_id = "<my-client-uuid>";
+const gchar *authority = MIB_AUTHORITY_COMMON;
 
 MIBClientApp *app = mib_public_client_app_new(client_id, authority, NULL, NULL);
 GSList *scopes = NULL;
@@ -50,8 +50,8 @@ MIBPrt *prt = mib_client_app_acquire_token_silent(app, account, scopes, NULL, NU
 MIBPrtSsoCookie *prt_cookie =
     mib_client_app_acquire_prt_sso_cookie(app, account, MIB_SSO_URL_DEFAULT, scopes);
 
-const char * name  = mib_prt_sso_cookie_get_name(cookie);
-const char * value = mib_prt_sso_cookie_get_content(cookie);
+const char *name = mib_prt_sso_cookie_get_name(cookie);
+const char *value = mib_prt_sso_cookie_get_content(cookie);
 ```
 
 Further examples are provided in `examples`.
