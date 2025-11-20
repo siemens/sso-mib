@@ -18,6 +18,9 @@
 // Fake MSAL CPP version
 #define MSAL_CPP_VERSION "1.28.0"
 
+#define FORMAT_JSON "json"
+#define FORMAT_TEXT "text"
+
 static GCancellable *cancellable = NULL;
 
 static void sig_handler(int signo)
@@ -136,6 +139,50 @@ static void print_account(MIBAccount *account, gchar *prefix)
 	g_print("%susername: %s\n", prefix, mib_account_get_username(account));
 }
 
+static void json_builder_add_account(JsonBuilder *builder, MIBAccount *account)
+{
+	char realm_str[37];
+	uuid_t realm;
+	mib_account_get_realm(account, realm);
+	uuid_unparse(realm, realm_str);
+
+	json_builder_set_member_name(builder, "client_info");
+	json_builder_add_string_value(builder,
+								  mib_account_get_client_info(account));
+
+	json_builder_set_member_name(builder, "environment");
+	json_builder_add_string_value(builder,
+								  mib_account_get_environment(account));
+
+	json_builder_set_member_name(builder, "family_name");
+	json_builder_add_string_value(builder,
+								  mib_account_get_family_name(account));
+
+	json_builder_set_member_name(builder, "given_name");
+	json_builder_add_string_value(builder, mib_account_get_given_name(account));
+
+	json_builder_set_member_name(builder, "home_account_id");
+	json_builder_add_string_value(builder,
+								  mib_account_get_home_account_id(account));
+
+	json_builder_set_member_name(builder, "local_account_id");
+	json_builder_add_string_value(builder,
+								  mib_account_get_local_account_id(account));
+
+	json_builder_set_member_name(builder, "name");
+	json_builder_add_string_value(builder, mib_account_get_name(account));
+
+	json_builder_set_member_name(builder, "password_expiry");
+	json_builder_add_int_value(builder,
+							   mib_account_get_password_expiry(account));
+
+	json_builder_set_member_name(builder, "realm");
+	json_builder_add_string_value(builder, realm_str);
+
+	json_builder_set_member_name(builder, "username");
+	json_builder_add_string_value(builder, mib_account_get_username(account));
+}
+
 static const char *auth_scheme_to_str(enum MIB_AUTH_SCHEME scheme)
 {
 	if (scheme == MIB_AUTH_SCHEME_POP) {
@@ -173,10 +220,110 @@ static void print_prt_token(MIBPrt *token, int decode)
 	g_print("\n");
 	tv.tv_sec = mib_prt_get_expires_on(token);
 	tm_info = localtime(&tv.tv_sec);
-	strftime(buffer, 32, "%Y-%m-%d %H:%M:%S", tm_info);
+	strftime(buffer, sizeof(buffer) - 1, "%Y-%m-%d %H:%M:%S", tm_info);
 	g_print("%sexpires-on: %s\n", p, buffer);
 	g_print("%saccount:\n", p);
 	print_account(mib_prt_get_account(token), "# ");
+}
+
+static void json_builder_add_jwt_token(JsonBuilder *builder, const gchar *token)
+{
+	char *grants = NULL;
+	char *hdrs = NULL;
+	if (decode_headers_and_claims(token, &grants, &hdrs) != 0) {
+		g_print("Error: Failed to decode JWT\n");
+		return;
+	}
+
+	json_builder_begin_object(builder);
+
+	GError *error = NULL;
+	JsonParser *parser = json_parser_new();
+	if (json_parser_load_from_data(parser, hdrs, -1, &error)) {
+		JsonNode *node = json_parser_get_root(parser);
+		json_builder_set_member_name(builder, "headers");
+		JsonNode *copied = json_node_copy(node);
+		json_builder_add_value(builder, copied);
+	} else {
+		g_printerr("Error parsing JSON string: %s\n", error->message);
+	}
+	g_clear_error(&error);
+
+	if (json_parser_load_from_data(parser, grants, -1, &error)) {
+		JsonNode *node = json_parser_get_root(parser);
+		json_builder_set_member_name(builder, "grants");
+		JsonNode *copied = json_node_copy(node);
+		json_builder_add_value(builder, copied);
+	} else {
+		g_printerr("Error parsing JSON string: %s\n", error->message);
+	}
+	g_clear_error(&error);
+
+	g_object_unref(parser);
+	free(hdrs);
+	free(grants);
+	json_builder_end_object(builder);
+}
+
+static void json_print_prt_token(MIBPrt *token, int decode)
+{
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_object(builder);
+	if (decode) {
+		json_builder_set_member_name(builder, "access_token");
+		json_builder_add_jwt_token(builder, mib_prt_get_access_token(token));
+		json_builder_set_member_name(builder, "id_token");
+		json_builder_add_jwt_token(builder, mib_prt_get_id_token(token));
+	} else {
+		json_builder_set_member_name(builder, "access_token");
+		json_builder_add_string_value(builder, mib_prt_get_access_token(token));
+		json_builder_set_member_name(builder, "id_token");
+		json_builder_add_string_value(builder, mib_prt_get_id_token(token));
+	}
+
+	json_builder_set_member_name(builder, "access_token_type");
+	json_builder_add_string_value(
+		builder, auth_scheme_to_str(mib_prt_get_access_token_type(token)));
+
+	json_builder_set_member_name(builder, "client_info");
+	json_builder_add_string_value(builder, mib_prt_get_client_info(token));
+
+	json_builder_set_member_name(builder, "granted_scopes");
+	gchar *const *scopes = mib_prt_get_granted_scopes(token);
+	json_builder_begin_array(builder);
+	for (int i = 0; scopes[i]; i++) {
+		json_builder_add_string_value(builder, scopes[i]);
+	}
+	json_builder_end_array(builder);
+
+	struct timeval tv;
+	tv.tv_sec = mib_prt_get_expires_on(token);
+	struct tm *tm_info = localtime(&tv.tv_sec);
+	char buffer[32];
+	strftime(buffer, sizeof(buffer) - 1, "%Y-%m-%d %H:%M:%S", tm_info);
+	json_builder_set_member_name(builder, "expires_on");
+	json_builder_add_string_value(builder, buffer);
+
+	json_builder_set_member_name(builder, "account");
+	json_builder_begin_object(builder);
+	json_builder_add_account(builder, mib_prt_get_account(token));
+	json_builder_end_object(builder);
+
+	// finish builder
+	json_builder_end_object(builder);
+
+	// output JSON
+	JsonGenerator *generator = json_generator_new();
+	JsonNode *root = json_builder_get_root(builder);
+	json_generator_set_root(generator, root);
+
+	gchar *buf = json_generator_to_data(generator, NULL);
+	g_print("%s\n", buf);
+	g_free(buf);
+
+	json_node_free(root);
+	g_object_unref(generator);
+	g_object_unref(builder);
 }
 
 static JsonObject *parse_to_json_object(const gchar *data)
@@ -270,6 +417,8 @@ static void print_help(char *name)
 	g_print("  -a <account>  Account index (default: 0)\n");
 	g_print("  -A <upn>      Select account by User Principal Name\n");
 	g_print("  -d            Decode JWT\n");
+	g_print("  -f <format>   Set output format: %s, %s (default: %s)\n",
+			FORMAT_TEXT, FORMAT_JSON, FORMAT_TEXT);
 	g_print("  -h            Print this help message\n");
 	g_print("  -I            Enforce interactive token acquire\n");
 	g_print("  -P            Proof-of-Possession parameters\n");
@@ -297,6 +446,7 @@ int main(int argc, char **argv)
 	char *renew_token = NULL;
 	int decode = 0;
 	int enforce_interactive = 0;
+	gchar *format = FORMAT_TEXT;
 	int c;
 	if (argc < 2) {
 		print_help(argv[0]);
@@ -307,7 +457,7 @@ int main(int argc, char **argv)
 		print_help(argv[0]);
 		return 0;
 	}
-	while ((c = getopt(argc - 1, argv + 1, "a:A:dhIP:r:s:S:t:x:")) != -1)
+	while ((c = getopt(argc - 1, argv + 1, "a:A:df:hIP:r:s:S:t:x:")) != -1)
 		switch (c) {
 		case 'a':
 			account_idx = atoi(optarg);
@@ -318,6 +468,9 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 			decode = 1;
+			break;
+		case 'f':
+			format = optarg;
 			break;
 		case 'h':
 			print_help(argv[0]);
@@ -481,7 +634,15 @@ int main(int argc, char **argv)
 			g_object_unref(cancellable);
 			return 1;
 		}
-		print_prt_token(prt_token, decode);
+		if (strcasecmp(format, FORMAT_TEXT) == 0) {
+			print_prt_token(prt_token, decode);
+		} else if (strcasecmp(format, FORMAT_JSON) == 0) {
+			json_print_prt_token(prt_token, decode);
+		} else {
+			g_print(
+				"Error[acquireTokenSilent]: Unsupported output format: %s\n",
+				format);
+		}
 		g_object_unref(prt_token);
 	} else if (strcmp(command, "acquireTokenInteractive") == 0) {
 		scopes = default_scope_if_empty(scopes);
@@ -497,7 +658,15 @@ int main(int argc, char **argv)
 			g_object_unref(cancellable);
 			return 1;
 		}
-		print_prt_token(prt_token, decode);
+		if (strcasecmp(format, FORMAT_TEXT) == 0) {
+			print_prt_token(prt_token, decode);
+		} else if (strcasecmp(format, FORMAT_JSON) == 0) {
+			json_print_prt_token(prt_token, decode);
+		} else {
+			g_print(
+				"Error[acquireTokenInteractive]: Unsupported output format: %s\n",
+				format);
+		}
 		g_object_unref(prt_token);
 	} else if (strcmp(command, "getLinuxBrokerVersion") == 0) {
 		gchar *version =
