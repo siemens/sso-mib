@@ -101,6 +101,59 @@ static void print_decoded_jwt(const gchar *token)
 }
 #endif
 
+static void print_json_builder(JsonBuilder *builder)
+{
+	JsonGenerator *generator = json_generator_new();
+	JsonNode *root = json_builder_get_root(builder);
+	json_generator_set_root(generator, root);
+
+	gchar *buf = json_generator_to_data(generator, NULL);
+	g_print("%s\n", buf);
+	g_free(buf);
+
+	json_node_free(root);
+	g_object_unref(generator);
+}
+
+static void json_builder_add_jwt_token(JsonBuilder *builder, const gchar *token)
+{
+	char *grants = NULL;
+	char *hdrs = NULL;
+	if (decode_headers_and_claims(token, &grants, &hdrs) != 0) {
+		g_print("Error: Failed to decode JWT\n");
+		return;
+	}
+
+	json_builder_begin_object(builder);
+
+	GError *error = NULL;
+	JsonParser *parser = json_parser_new();
+	if (json_parser_load_from_data(parser, hdrs, -1, &error)) {
+		JsonNode *node = json_parser_get_root(parser);
+		json_builder_set_member_name(builder, "headers");
+		JsonNode *copied = json_node_copy(node);
+		json_builder_add_value(builder, copied);
+	} else {
+		g_printerr("Error parsing JSON string: %s\n", error->message);
+	}
+	g_clear_error(&error);
+
+	if (json_parser_load_from_data(parser, grants, -1, &error)) {
+		JsonNode *node = json_parser_get_root(parser);
+		json_builder_set_member_name(builder, "grants");
+		JsonNode *copied = json_node_copy(node);
+		json_builder_add_value(builder, copied);
+	} else {
+		g_printerr("Error parsing JSON string: %s\n", error->message);
+	}
+	g_clear_error(&error);
+
+	g_object_unref(parser);
+	free(hdrs);
+	free(grants);
+	json_builder_end_object(builder);
+}
+
 static void print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)
 {
 	const gchar *name = mib_prt_sso_cookie_get_name(cookie);
@@ -113,6 +166,27 @@ static void print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)
 		g_print("cookie-name: %s\n", name);
 		g_print("cookie-content: %s\n", content);
 	}
+}
+
+static void json_print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)
+{
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_object(builder);
+
+	json_builder_set_member_name(builder, "cookie_name");
+	json_builder_add_string_value(builder, mib_prt_sso_cookie_get_name(cookie));
+
+	json_builder_set_member_name(builder, "cookie_content");
+	const gchar *content = mib_prt_sso_cookie_get_content(cookie);
+	if (decode) {
+		json_builder_add_jwt_token(builder, content);
+	} else {
+		json_builder_add_string_value(builder, content);
+	}
+
+	json_builder_end_object(builder);
+	print_json_builder(builder);
+	g_object_unref(builder);
 }
 
 static void print_account(MIBAccount *account, gchar *prefix)
@@ -226,45 +300,6 @@ static void print_prt_token(MIBPrt *token, int decode)
 	print_account(mib_prt_get_account(token), "# ");
 }
 
-static void json_builder_add_jwt_token(JsonBuilder *builder, const gchar *token)
-{
-	char *grants = NULL;
-	char *hdrs = NULL;
-	if (decode_headers_and_claims(token, &grants, &hdrs) != 0) {
-		g_print("Error: Failed to decode JWT\n");
-		return;
-	}
-
-	json_builder_begin_object(builder);
-
-	GError *error = NULL;
-	JsonParser *parser = json_parser_new();
-	if (json_parser_load_from_data(parser, hdrs, -1, &error)) {
-		JsonNode *node = json_parser_get_root(parser);
-		json_builder_set_member_name(builder, "headers");
-		JsonNode *copied = json_node_copy(node);
-		json_builder_add_value(builder, copied);
-	} else {
-		g_printerr("Error parsing JSON string: %s\n", error->message);
-	}
-	g_clear_error(&error);
-
-	if (json_parser_load_from_data(parser, grants, -1, &error)) {
-		JsonNode *node = json_parser_get_root(parser);
-		json_builder_set_member_name(builder, "grants");
-		JsonNode *copied = json_node_copy(node);
-		json_builder_add_value(builder, copied);
-	} else {
-		g_printerr("Error parsing JSON string: %s\n", error->message);
-	}
-	g_clear_error(&error);
-
-	g_object_unref(parser);
-	free(hdrs);
-	free(grants);
-	json_builder_end_object(builder);
-}
-
 static void json_print_prt_token(MIBPrt *token, int decode)
 {
 	JsonBuilder *builder = json_builder_new();
@@ -312,17 +347,7 @@ static void json_print_prt_token(MIBPrt *token, int decode)
 	// finish builder
 	json_builder_end_object(builder);
 
-	// output JSON
-	JsonGenerator *generator = json_generator_new();
-	JsonNode *root = json_builder_get_root(builder);
-	json_generator_set_root(generator, root);
-
-	gchar *buf = json_generator_to_data(generator, NULL);
-	g_print("%s\n", buf);
-	g_free(buf);
-
-	json_node_free(root);
-	g_object_unref(generator);
+	print_json_builder(builder);
 	g_object_unref(builder);
 }
 
@@ -609,7 +634,15 @@ int main(int argc, char **argv)
 			g_object_unref(cancellable);
 			return 1;
 		}
-		print_prt_sso_cookie(prt_cookie, decode);
+		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
+			print_prt_sso_cookie(prt_cookie, decode);
+		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
+			json_print_prt_sso_cookie(prt_cookie, decode);
+		} else {
+			g_print(
+				"Error[acquirePrtSsoCookie]: Unsupported output format: %s\n",
+				format);
+		}
 		g_object_unref(prt_cookie);
 	} else if (strcmp(command, "acquireTokenSilent") == 0) {
 		scopes = default_scope_if_empty(scopes);
@@ -704,10 +737,28 @@ int main(int argc, char **argv)
 		g_object_unref(auth_params);
 		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 		if (token) {
-			if (decode) {
-				print_decoded_jwt(token);
+			if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
+				if (decode) {
+					print_decoded_jwt(token);
+				} else {
+					g_print("HTTP request token: %s\n", token);
+				}
+			} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
+				JsonBuilder *builder = json_builder_new();
+				json_builder_begin_object(builder);
+				json_builder_set_member_name(builder, "token");
+				if (decode) {
+					json_builder_add_jwt_token(builder, token);
+				} else {
+					json_builder_add_string_value(builder, token);
+				}
+				json_builder_end_object(builder);
+				print_json_builder(builder);
+				g_object_unref(builder);
 			} else {
-				g_print("HTTP request token: %s\n", token);
+				g_print(
+					"Error[generateSignedHttpRequest]: Unsupported output format: %s\n",
+					format);
 			}
 			g_free(token);
 		} else {
