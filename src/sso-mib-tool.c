@@ -634,9 +634,9 @@ int main(int argc, char **argv)
 			g_object_unref(cancellable);
 			return 1;
 		}
-		if (strcasecmp(format, FORMAT_TEXT) == 0) {
+		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
 			print_prt_token(prt_token, decode);
-		} else if (strcasecmp(format, FORMAT_JSON) == 0) {
+		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
 			json_print_prt_token(prt_token, decode);
 		} else {
 			g_print(
@@ -658,9 +658,9 @@ int main(int argc, char **argv)
 			g_object_unref(cancellable);
 			return 1;
 		}
-		if (strcasecmp(format, FORMAT_TEXT) == 0) {
+		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
 			print_prt_token(prt_token, decode);
-		} else if (strcasecmp(format, FORMAT_JSON) == 0) {
+		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
 			json_print_prt_token(prt_token, decode);
 		} else {
 			g_print(
