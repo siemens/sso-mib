@@ -88,9 +88,16 @@ jobs:
           fetch-depth: 0
       - name: install dependencies
         run: |
+          if [[ "${{ matrix.distro }}" == "debian:bookworm" ]]; then
+            # Add backports repository for Debian bookworm
+            echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list
+            echo -e "Package: meson\nPin: release n=bookworm-backports\nPin-Priority: 501" | \
+              tee /etc/apt/preferences.d/meson-backports.pref > /dev/null
+          fi
           apt-get update
-          apt-get install -y --no-install-recommends devscripts equivs
+          apt-get install -y --no-install-recommends devscripts equivs meson
           mk-build-deps --install -t "apt-get --no-install-recommends -y"
+        shell: bash
       - name: build package
         run: |
           dpkg-buildpackage -us -uc -b
