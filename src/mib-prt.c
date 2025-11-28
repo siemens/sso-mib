@@ -19,6 +19,7 @@ struct _MIBPrt {
 	/// Allocated array of strings, null terminated
 	gchar **granted_scopes;
 	gchar *id_token;
+	gchar *refresh_token;
 };
 G_DEFINE_TYPE(MIBPrt, mib_prt, G_TYPE_OBJECT)
 
@@ -30,6 +31,7 @@ static void mib_prt_finalize(GObject *gobject)
 	g_clear_pointer(&self->client_info, g_free);
 	g_clear_pointer(&self->granted_scopes, g_strfreev);
 	g_clear_pointer(&self->id_token, g_free);
+	g_clear_pointer(&self->refresh_token, g_free);
 	G_OBJECT_CLASS(mib_prt_parent_class)->finalize(gobject);
 }
 
@@ -96,6 +98,12 @@ MIBPrt *mib_prt_from_json(JsonObject *token_json)
 		json_object_get_int_member(broker_resp, "expiresOn") / 1000;
 	token->id_token =
 		g_strdup(json_object_get_string_member(broker_resp, "idToken"));
+
+	if (json_object_has_member(broker_resp, "refreshToken")) {
+		token->refresh_token = g_strdup(
+			json_object_get_string_member(broker_resp, "refreshToken"));
+	}
+
 	const gchar *granted_scopes =
 		json_object_get_string_member(broker_resp, "grantedScopes");
 	token->granted_scopes = g_strsplit(granted_scopes, " ", -1);
@@ -136,4 +144,10 @@ const gchar *mib_prt_get_id_token(MIBPrt *self)
 {
 	g_assert(self);
 	return self->id_token;
+}
+
+const gchar *mib_prt_get_refresh_token(MIBPrt *self)
+{
+	g_assert(self);
+	return self->refresh_token;
 }
