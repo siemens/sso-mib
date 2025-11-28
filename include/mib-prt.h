@@ -37,6 +37,7 @@ PUBLIC_API const gchar *mib_prt_get_client_info(MIBPrt *self);
 PUBLIC_API time_t mib_prt_get_expires_on(MIBPrt *self);
 PUBLIC_API gchar *const *mib_prt_get_granted_scopes(MIBPrt *self);
 PUBLIC_API const gchar *mib_prt_get_id_token(MIBPrt *self);
+PUBLIC_API const gchar *mib_prt_get_refresh_token(MIBPrt *self);
 
 G_END_DECLS
 
