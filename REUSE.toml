@@ -10,7 +10,7 @@ SPDX-FileCopyrightText = "2025 Siemens AG"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
-path = ["README.md", "dbus/spec/com.microsoft.identity.broker1.xml"]
+path = ["README.md", "dbus/spec/com.microsoft.identity.broker1.xml", "flake.lock"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 Siemens AG"
 SPDX-License-Identifier = "MIT"
