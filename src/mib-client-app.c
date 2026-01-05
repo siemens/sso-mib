@@ -353,7 +353,7 @@ static JsonObject *
 prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 						JsonArray *scopes, const gchar *claims_challenge,
 						JsonObject *auth_scheme, const gchar *renew_token,
-						JsonObject *extra_params)
+						JsonObject *extra_params, const gchar *sso_url)
 {
 	// {
 	//  'accessTokenToRenew': renew_token,
@@ -365,6 +365,7 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	//  '<context['authority']>/oauth2/nativeclient',
 	//  'requestedScopes': ["https://graph.microsoft.com/.default"],
 	//  'username': account['username'],
+	//  'ssoUrl': sso_url,
 	// }
 
 	JsonNode *account_node = json_node_new(JSON_NODE_OBJECT);
@@ -410,6 +411,10 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	json_builder_add_value(builder, scopes_node);
 	json_builder_set_member_name(builder, "username");
 	json_builder_add_string_value(builder, username);
+	if (sso_url) {
+		json_builder_set_member_name(builder, "ssoUrl");
+		json_builder_add_string_value(builder, sso_url);
+	}
 	json_builder_end_object(builder);
 
 	JsonNode *root = json_builder_get_root(builder);
@@ -429,8 +434,9 @@ mib_acquire_token_silent_raw(MIBClientApp *app, JsonObject *account,
 	gchar *response;
 	gboolean ok;
 	JsonObject *token;
-	JsonObject *auth_params = prepare_prt_auth_params(
-		app, account, scopes, claims_challenge, auth_scheme, renew_token, NULL);
+	JsonObject *auth_params =
+		prepare_prt_auth_params(app, account, scopes, claims_challenge,
+								auth_scheme, renew_token, NULL, NULL);
 	JsonNode *auth_params_node = json_node_new(JSON_NODE_OBJECT);
 	json_node_set_object(auth_params_node, auth_params);
 	json_object_unref(auth_params);
@@ -504,7 +510,7 @@ static JsonObject *mib_acquire_token_interactive_raw(
 
 	JsonObject *auth_params =
 		prepare_prt_auth_params(app, account, scopes, claims_challenge,
-								auth_scheme, NULL, extra_params);
+								auth_scheme, NULL, extra_params, NULL);
 
 	/* TODO: check if this is the correct key */
 	if (prompt != MIB_PROMPT_UNSET) {
@@ -636,8 +642,8 @@ static JsonObject *mib_acquire_prt_sso_cookie_raw(MIBClientApp *app,
 	gchar *response;
 	gboolean ok;
 
-	JsonObject *auth_params =
-		prepare_prt_auth_params(app, account, scopes, NULL, NULL, NULL, NULL);
+	JsonObject *auth_params = prepare_prt_auth_params(
+		app, account, scopes, NULL, NULL, NULL, NULL, sso_url);
 	JsonObject *params =
 		prepare_prt_sso_request_data(account, auth_params, sso_url);
 	debug_print_json_object("mib_acquire_prt_sso_cookie_raw", "request",
