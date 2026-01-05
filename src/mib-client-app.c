@@ -443,9 +443,6 @@ mib_acquire_token_silent_raw(MIBClientApp *app, JsonObject *account,
 	json_object_unref(auth_params);
 
 	JsonObject *params_obj = json_object_new();
-	JsonNode *account_node = json_node_new(JSON_NODE_OBJECT);
-	json_node_set_object(account_node, account);
-	json_object_set_member(params_obj, "account", account_node);
 	json_object_set_member(params_obj, "authParameters", auth_params_node);
 	debug_print_json_object("mib_acquire_token_silent_raw", "request",
 							params_obj);
