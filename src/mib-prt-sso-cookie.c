@@ -39,6 +39,13 @@ static void mib_prt_sso_cookie_init(MIB_ARG_UNUSED MIBPrtSsoCookie *self)
 MIBPrtSsoCookie *mib_prt_sso_cookie_from_json(JsonObject *cookie_json)
 {
 	MIBPrtSsoCookie *cookie;
+	/* microsoft-identity-broker > 2.0.1 */
+	if (json_object_has_member(cookie_json, "cookieItems")) {
+		JsonObject *cookie_json_inner = json_array_get_object_element(
+			json_object_get_array_member(cookie_json, "cookieItems"), 0);
+		return mib_prt_sso_cookie_from_json(cookie_json_inner);
+	}
+
 	if (!json_object_has_member(cookie_json, "cookieName") ||
 		!json_object_has_member(cookie_json, "cookieContent")) {
 		g_warning("invalid cookie data");
