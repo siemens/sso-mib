@@ -359,7 +359,7 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	//  'accessTokenToRenew': renew_token,
 	//  'account': account,
 	//  'authority': context['authority']
-	//  'authorizationType': 8,  # OAUTH2
+	//  'authorizationType': 8 (cookie with sso_url), 1 otherwise
 	//  'clientId': client_id,
 	//  'redirectUri':
 	//  '<context['authority']>/oauth2/nativeclient',
@@ -367,6 +367,7 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	//  'username': account['username'],
 	//  'ssoUrl': sso_url,
 	// }
+	int auth_type = sso_url ? 8 : 1;
 
 	JsonNode *account_node = json_node_new(JSON_NODE_OBJECT);
 	json_node_set_object(account_node, account);
@@ -385,7 +386,7 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	json_builder_set_member_name(builder, "authority");
 	json_builder_add_string_value(builder, mib_client_app_get_authority(app));
 	json_builder_set_member_name(builder, "authorizationType");
-	json_builder_add_int_value(builder, 8); // OAUTH2
+	json_builder_add_int_value(builder, auth_type);
 	json_builder_set_member_name(builder, "clientId");
 	json_builder_add_string_value(builder, mib_client_app_get_client_id(app));
 	if (claims_challenge) {
