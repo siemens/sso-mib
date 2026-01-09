@@ -53,6 +53,7 @@ int main()
 {
 	const gchar *client_id = EDGE_BROWSER_CLIENT_ID;
 	const gchar *authority = MIB_AUTHORITY_COMMON;
+	int ret = 0;
 
 	MIBClientApp *app =
 		mib_public_client_app_new(client_id, authority, NULL, NULL);
@@ -70,24 +71,29 @@ int main()
 	FILE *f = fopen("avatar.jpg", "w");
 	if (!f) {
 		g_printerr("could not open file\n");
-		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-		g_object_unref(app);
-		return -1;
+		ret = -1;
+		goto cleanup;
 	}
 
 	printf("Acquire Bearer token\n");
 	scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
 	MIBPrt *prt =
 		mib_client_app_acquire_token_silent(app, account, scopes, NULL, NULL, NULL);
+	if (!prt) {
+		printf("Failed to get Graph API token\n");
+		ret = -1;
+		goto cleanup;
+	}
+
 	const char *token = mib_prt_get_access_token(prt);
 	fetch_avatar(token, f);
-	fclose(f);
 	printf("Successfully stored avatar picture in 'avatar.jpg'\n");
 
-	/* cleanup */
+cleanup:
+	fclose(f);
 	g_slist_free_full(scopes, (GDestroyNotify)g_free);
 	g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-	g_object_unref(prt);
+	g_clear_object(&prt);
 	g_object_unref(app);
-	return 0;
+	return ret;
 }
