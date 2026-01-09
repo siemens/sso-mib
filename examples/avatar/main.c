@@ -76,7 +76,7 @@ int main()
 	}
 
 	printf("Acquire Bearer token\n");
-	scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
+	scopes = g_slist_append(scopes, g_strdup("User.Read"));
 	MIBPrt *prt =
 		mib_client_app_acquire_token_silent(app, account, scopes, NULL, NULL, NULL);
 	if (!prt) {
