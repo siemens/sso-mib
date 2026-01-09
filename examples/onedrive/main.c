@@ -136,10 +136,7 @@ int main()
 		goto cleanup;
 
 	mib_client_app_set_redirect_uri(app, APP_REDIRECT_URI);
-	scopes = g_slist_append(scopes, "Files.ReadWrite");
-	scopes = g_slist_append(scopes, "Files.ReadWrite.All");
-	scopes = g_slist_append(scopes, "Sites.ReadWrite.All");
-	scopes = g_slist_append(scopes, "offline_access");
+	scopes = g_slist_append(scopes, "Files.Read");
 
 	token = mib_client_app_acquire_token_interactive(
 		app, scopes, MIB_PROMPT_UNSET, upn_hint, NULL, NULL, NULL);
