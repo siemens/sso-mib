@@ -37,7 +37,7 @@ jobs:
         run: |
           reuse lint
 
-  build:
+  build-ubuntu:
     runs-on: ubuntu-24.04
     steps:
       - name: checkout repository
@@ -71,6 +71,18 @@ jobs:
         id: deployment
         with:
           path: build/api/
+
+  build-nix:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+      - name: Build with Nix
+        run: nix build
 
   package:
     strategy:
@@ -152,7 +164,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-24.04
-    needs: build
+    needs: build-ubuntu
     permissions:
       pages: write
       id-token: write
