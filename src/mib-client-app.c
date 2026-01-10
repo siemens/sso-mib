@@ -43,9 +43,6 @@ static void mib_client_app_finalize(GObject *gobject)
 		mib_client_app_get_instance_private(MIB_CLIENT_APP(gobject));
 	g_clear_object(&priv->cancellable);
 	g_clear_object(&priv->broker);
-	if (priv->cancellable) {
-		g_clear_object(&priv->cancellable);
-	}
 	g_clear_pointer(&priv->authority, g_free);
 	g_clear_pointer(&priv->redirect_uri, g_free);
 	G_OBJECT_CLASS(mib_client_app_parent_class)->finalize(gobject);
