@@ -22,6 +22,26 @@
 // MSAL does not define any lower-bound (yet)
 #define MIB_REQUIRED_BROKER_PROTOCOL_VERSION "0.0"
 
+/*
+ * Values from MSAL runtime (internal interface)
+ */
+enum AuthorizationType {
+	AT_NONE = 0,
+	AT_CACHED_REFRESH_TOKEN = 1,
+	AT_IMPORTED_REFRESH_TOKEN = 2,
+	AT_USERNAME_PASSWORD = 3,
+	AT_WINDOWS_INTEGRATED_AUTH = 4,
+	AT_AUTH_CODE = 5,
+	AT_INTERACTIVE = 6,
+	AT_CERTIFICATE = 7,
+	AT_PRT_SSO_COOKIE = 8,
+	AT_COMPLETE_BROKER_RESULT = 9,
+	AT_DEVICE_INFO_REQUEST = 10,
+	AT_SIGN_OUT_INTERACTIVE = 11,
+	AT_SIGN_OUT_SILENT = 12,
+	AT_ACCOUNT_TRANSFER = 13
+};
+
 struct _MIBClientApp {
 	GObject parent_instance;
 
@@ -350,7 +370,8 @@ static JsonObject *
 prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 						JsonArray *scopes, const gchar *claims_challenge,
 						JsonObject *auth_scheme, const gchar *renew_token,
-						JsonObject *extra_params, const gchar *sso_url)
+						JsonObject *extra_params, const gchar *sso_url,
+						enum AuthorizationType auth_type)
 {
 	// {
 	//  'accessTokenToRenew': renew_token,
@@ -364,8 +385,6 @@ prepare_prt_auth_params(MIBClientApp *app, JsonObject *account,
 	//  'username': account['username'],
 	//  'ssoUrl': sso_url,
 	// }
-	int auth_type = sso_url ? 8 : 1;
-
 	JsonNode *account_node = json_node_new(JSON_NODE_OBJECT);
 	json_node_set_object(account_node, account);
 	JsonNode *scopes_node = json_node_new(JSON_NODE_ARRAY);
@@ -432,9 +451,9 @@ mib_acquire_token_silent_raw(MIBClientApp *app, JsonObject *account,
 	gchar *response;
 	gboolean ok;
 	JsonObject *token;
-	JsonObject *auth_params =
-		prepare_prt_auth_params(app, account, scopes, claims_challenge,
-								auth_scheme, renew_token, NULL, NULL);
+	JsonObject *auth_params = prepare_prt_auth_params(
+		app, account, scopes, claims_challenge, auth_scheme, renew_token, NULL,
+		NULL, AT_CACHED_REFRESH_TOKEN);
 	JsonNode *auth_params_node = json_node_new(JSON_NODE_OBJECT);
 	json_node_set_object(auth_params_node, auth_params);
 	json_object_unref(auth_params);
@@ -503,9 +522,9 @@ static JsonObject *mib_acquire_token_interactive_raw(
 	gboolean ok;
 	JsonObject *token;
 
-	JsonObject *auth_params =
-		prepare_prt_auth_params(app, account, scopes, claims_challenge,
-								auth_scheme, NULL, extra_params, NULL);
+	JsonObject *auth_params = prepare_prt_auth_params(
+		app, account, scopes, claims_challenge, auth_scheme, NULL, extra_params,
+		NULL, AT_INTERACTIVE);
 
 	/* TODO: check if this is the correct key */
 	if (prompt != MIB_PROMPT_UNSET) {
@@ -522,9 +541,6 @@ static JsonObject *mib_acquire_token_interactive_raw(
 	if (prompt & MIB_PROMPT_SELECT_ACCOUNT) {
 		json_object_remove_member(auth_params, "account");
 		json_object_remove_member(auth_params, "username");
-	} else {
-		json_object_set_object_member(params_obj, "account",
-									  json_object_ref(account));
 	}
 	json_object_set_member(params_obj, "authParameters", auth_params_node);
 	debug_print_json_object("mib_acquire_token_interactive_raw", "request",
@@ -635,8 +651,9 @@ static JsonObject *mib_acquire_prt_sso_cookie_raw(MIBClientApp *app,
 	gchar *response;
 	gboolean ok;
 
-	JsonObject *auth_params = prepare_prt_auth_params(
-		app, account, scopes, NULL, NULL, NULL, NULL, sso_url);
+	JsonObject *auth_params =
+		prepare_prt_auth_params(app, account, scopes, NULL, NULL, NULL, NULL,
+								sso_url, AT_PRT_SSO_COOKIE);
 	JsonObject *params =
 		prepare_prt_sso_request_data(account, auth_params, sso_url);
 	debug_print_json_object("mib_acquire_prt_sso_cookie_raw", "request",
