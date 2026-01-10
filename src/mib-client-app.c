@@ -582,24 +582,22 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 	}
 	if (token_json) {
 		token = mib_prt_from_json(token_json);
-		if (!token)
-			json_object_unref(token_json);
+		json_object_unref(token_json);
 	}
 	if (!token) {
 		token_json = mib_acquire_token_interactive_raw(
 			app, scopes_array, prompt, account_json, domain_hint,
 			claims_challenge, pop_params, NULL);
-		token = mib_prt_from_json(token_json);
+		if (token_json) {
+			token = mib_prt_from_json(token_json);
+			json_object_unref(token_json);
+		}
 	}
 	json_object_unref(account_json);
 	json_array_unref(scopes_array);
 	if (pop_params) {
 		json_object_unref(pop_params);
 	}
-	if (!token_json) {
-		return NULL;
-	}
-	json_object_unref(token_json);
 	return token;
 }
 
