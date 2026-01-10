@@ -12,7 +12,6 @@
 #include <glib-object.h>
 
 #include "mib-exports.h"
-#include "mib-prt.h"
 #include "mib-pop-params.h"
 
 /**
