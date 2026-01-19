@@ -16,8 +16,8 @@
 #define DBUS_BROKER_PATH "/com/microsoft/identity/broker1"
 
 // according to https://msal-python.readthedocs.io/en/latest/#publicclientapplication
-#define MIB_MS_BROKER_REDIRECT_URI_FMT \
-	"ms-appx-web://Microsoft.AAD.BrokerPlugin/%s"
+#define MIB_MS_BROKER_REDIRECT_URI \
+	"https://login.microsoftonline.com/common/oauth2/nativeclient"
 
 // MSAL does not define any lower-bound (yet)
 #define MIB_REQUIRED_BROKER_PROTOCOL_VERSION "0.0"
@@ -284,7 +284,7 @@ GCancellable *mib_client_app_get_cancellable(MIBClientApp *self)
 gchar *mib_client_app_get_broker_redirect_uri(const MIBClientApp *self)
 {
 	g_assert(self);
-	return g_strdup_printf(MIB_MS_BROKER_REDIRECT_URI_FMT, self->client_id);
+	return g_strdup(MIB_MS_BROKER_REDIRECT_URI);
 }
 
 void mib_client_app_set_redirect_uri(MIBClientApp *self, const gchar *uri)
