@@ -2,7 +2,8 @@
 
 # Single-Sign-On using Microsoft Identity Broker (SSO-MIB)
 
-This project implements a C library to interact with a locally running microsoft-identity-broker to get various authentication tokens via DBus.
+sso-mib is a lightweight C library and CLI tool for interacting with a Microsoft Identity Broker to obtain authentication tokens via DBus.
+
 By that, it implements support for the OIDC extension [MS-OAPXBC], sections [3.1.5.1.2 Request for Primary Refresh Token](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oapxbc/d32d5cd0-05d4-4ec2-8bcc-ac29ce711c23), [3.1.5.1.3 Exchange Primary Refresh Token for Access Token](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oapxbc/06e2bf0d-8cea-4b11-ad78-d212330ebda9)
 and can be used to obtain Proof-of-Possession tokens for RDP [[MS-RDPBCGR](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/e967ebeb-9e9f-443e-857a-5208802943c2)].
 
@@ -59,6 +60,16 @@ Further examples are provided in `examples`.
 ## Frontend
 
 The `sso-mib-tool` provides a simple frontend to interact with the library.
+
+For example, the following can be used to obtain a token for sending mail via SMTP:
+
+```bash
+$ sso-mib-tool acquireTokenInteractive -f json \
+    -s <client_id> \
+    -r https://login.microsoftonline.com/common/oauth2/nativeclient \
+    -x <authority> \
+    -S offline_access -S 'https://outlook.office365.com/SMTP.Send'
+```
 
 ## Maintainers
 
