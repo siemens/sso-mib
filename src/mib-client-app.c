@@ -506,7 +506,7 @@ MIBPrt *mib_client_app_acquire_token_silent(MIBClientApp *app,
 	if (!token_json) {
 		return NULL;
 	}
-	MIBPrt *token = mib_prt_from_json(token_json);
+	MIBPrt *token = mib_prt_from_json(token_json, account);
 	json_object_unref(token_json);
 	return token;
 }
@@ -585,6 +585,7 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 	if (!account_json) {
 		return NULL;
 	}
+	MIBAccount *fallback_account = mib_account_from_json(account_json);
 
 	JsonArray *scopes_array = mib_scopes_to_json(scopes);
 	JsonObject *pop_params = auth_scheme ? mib_pop_params_to_json(auth_scheme) :
@@ -597,7 +598,7 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 										 claims_challenge, pop_params, NULL);
 	}
 	if (token_json) {
-		token = mib_prt_from_json(token_json);
+		token = mib_prt_from_json(token_json, fallback_account);
 		json_object_unref(token_json);
 	}
 	if (!token) {
@@ -605,7 +606,7 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 			app, scopes_array, prompt, account_json, domain_hint,
 			claims_challenge, pop_params, NULL);
 		if (token_json) {
-			token = mib_prt_from_json(token_json);
+			token = mib_prt_from_json(token_json, fallback_account);
 			json_object_unref(token_json);
 		}
 	}
@@ -614,6 +615,7 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 	if (pop_params) {
 		json_object_unref(pop_params);
 	}
+	g_clear_object(&fallback_account);
 	return token;
 }
 
