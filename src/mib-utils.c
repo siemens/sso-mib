@@ -34,6 +34,10 @@ static void print_json_object(JsonObject *object)
 void debug_print_json_object(gchar *func, gchar *scope, JsonObject *object)
 {
 	g_debug("json-object from %s,%s", func, scope);
+	if (!object) {
+		g_debug("(null)");
+		return;
+	}
 	print_json_object(object);
 }
 
