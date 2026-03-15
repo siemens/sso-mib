@@ -800,7 +800,8 @@ static int mib_remove_account_raw(MIBClientApp *app, JsonObject *account)
 	JsonObject *resp_json = json_object_from_string(response);
 	g_free(response);
 	debug_print_json_object("mib_remove_account_raw", "response", resp_json);
-	json_object_unref(resp_json);
+	if (resp_json)
+		json_object_unref(resp_json);
 	return 0;
 }
 
