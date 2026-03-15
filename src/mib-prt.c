@@ -57,12 +57,11 @@ static int mib_prt_token_type_from_ext(int ext_token_type)
 	return MIB_AUTH_SCHEME_BEARER;
 }
 
-MIBPrt *mib_prt_from_json(JsonObject *token_json)
+MIBPrt *mib_prt_from_json(JsonObject *token_json, MIBAccount *fallback_account)
 {
 	MIBAccount *account = NULL;
-	JsonObject *account_json = NULL;
 	MIBPrt *token = NULL;
-	const char *members[] = { "accessToken",  "accessTokenType", "account",
+	const char *members[] = { "accessToken",  "accessTokenType",
 							  "clientInfo",	  "expiresOn",		 "idToken",
 							  "grantedScopes" };
 
@@ -82,8 +81,12 @@ MIBPrt *mib_prt_from_json(JsonObject *token_json)
 		g_strdup(json_object_get_string_member(broker_resp, "accessToken"));
 	token->access_token_type = mib_prt_token_type_from_ext(
 		json_object_get_int_member(broker_resp, "accessTokenType"));
-	account_json = json_object_get_object_member(broker_resp, "account");
-	account = mib_account_from_json(account_json);
+	if (json_object_has_member(broker_resp, "account")) {
+		JsonObject *account_json = json_object_get_object_member(broker_resp, "account");
+		account = mib_account_from_json(account_json);
+	}
+	if (!account && fallback_account)
+		account = g_object_ref(fallback_account);
 	if (!account) {
 		g_warning("account data is not valid");
 		g_object_unref(token);

@@ -9,4 +9,4 @@
 #include "mib-prt.h"
 
 gchar *json_object_to_string(JsonObject *object);
-MIBPrt *mib_prt_from_json(JsonObject *token_json);
+MIBPrt *mib_prt_from_json(JsonObject *token_json, MIBAccount *fallback_account);
