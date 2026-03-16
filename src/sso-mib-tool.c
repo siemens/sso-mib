@@ -406,7 +406,7 @@ static MIBPopParams *mib_pop_params_from_json(JsonObject *params_json)
 		json_object_get_string_member(params_json, "resourceRequestUri");
 	params = mib_pop_params_new(auth_scheme, req_method, req_uri);
 	if (!params) {
-		return NULL;
+		goto err;
 	}
 	if (json_object_has_member(params_json, "shrClaims")) {
 		mib_pop_params_set_shr_claims(
@@ -414,12 +414,12 @@ static MIBPopParams *mib_pop_params_from_json(JsonObject *params_json)
 	}
 	if (json_object_has_member(params_json, "shrNonce")) {
 		mib_pop_params_set_shr_nonce(
-			params,
-			json_object_get_string_member(params_json, "shrNonce"));
+			params, json_object_get_string_member(params_json, "shrNonce"));
 	}
 	return params;
 err:
-	g_object_unref(params);
+	if (params)
+		g_object_unref(params);
 	return NULL;
 }
 
