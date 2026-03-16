@@ -6,7 +6,6 @@
 #include "identity-broker.h"
 #include "mib-account-impl.h"
 #include "mib-client-app-impl.h"
-#include "mib-account-impl.h"
 #include "mib-pop-params-impl.h"
 #include "mib-prt-impl.h"
 #include "mib-prt-sso-cookie-impl.h"
