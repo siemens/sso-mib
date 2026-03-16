@@ -7,5 +7,6 @@
 
 #include <json-glib/json-glib.h>
 #include "mib-prt.h"
+#include "mib-account.h"
 
 MIBPrt *mib_prt_from_json(JsonObject *token_json, MIBAccount *fallback_account);
