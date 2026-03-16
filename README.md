@@ -82,6 +82,10 @@ Since version `v0.5`, git release tags are signed with one of the following main
 
 - `AF73F6EF5A53CFE304569F50E648A311F67A50FC` (Felix Moessbauer)
 
+Since version `v0.8`, the following keys are used:
+
+    3785ED68D0F83B7BD7D23D7FE1136CEB2754A0BD (Felix Moessbauer)
+
 ## License
 
 The library is licensed according to the terms of the GNU Lesser General Public License v2.1.
