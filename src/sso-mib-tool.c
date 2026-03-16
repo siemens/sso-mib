@@ -273,14 +273,22 @@ static void print_prt_token(MIBPrt *token, int decode)
 	struct timeval tv;
 	const char *token_type =
 		auth_scheme_to_str(mib_prt_get_access_token_type(token));
+	const gchar * refresh_token = mib_prt_get_refresh_token(token);
 	if (decode) {
 		g_print("# access token\n");
 		print_decoded_jwt(mib_prt_get_access_token(token));
 		g_print("# id token\n");
 		print_decoded_jwt(mib_prt_get_id_token(token));
+		if (refresh_token) {
+			g_print("# refresh token\n");
+			print_decoded_jwt(refresh_token);
+		}
 	} else {
 		g_print("access-token: %s\n", mib_prt_get_access_token(token));
 		g_print("id-token: %s\n", mib_prt_get_id_token(token));
+		if (refresh_token) {
+			g_print("refresh token: %s\n", refresh_token);
+		}
 	}
 
 	const gchar *p = decode ? "# " : "";
@@ -302,6 +310,8 @@ static void print_prt_token(MIBPrt *token, int decode)
 
 static void json_print_prt_token(MIBPrt *token, int decode)
 {
+	const gchar* refresh_token = mib_prt_get_refresh_token(token);
+
 	JsonBuilder *builder = json_builder_new();
 	json_builder_begin_object(builder);
 	if (decode) {
@@ -309,11 +319,19 @@ static void json_print_prt_token(MIBPrt *token, int decode)
 		json_builder_add_jwt_token(builder, mib_prt_get_access_token(token));
 		json_builder_set_member_name(builder, "id_token");
 		json_builder_add_jwt_token(builder, mib_prt_get_id_token(token));
+		if (refresh_token) {
+			json_builder_set_member_name(builder, "refresh_token");
+			json_builder_add_jwt_token(builder, refresh_token);
+		}
 	} else {
 		json_builder_set_member_name(builder, "access_token");
 		json_builder_add_string_value(builder, mib_prt_get_access_token(token));
 		json_builder_set_member_name(builder, "id_token");
 		json_builder_add_string_value(builder, mib_prt_get_id_token(token));
+		if (refresh_token) {
+			json_builder_set_member_name(builder, "refresh_token");
+			json_builder_add_string_value(builder, refresh_token);
+		}
 	}
 
 	json_builder_set_member_name(builder, "access_token_type");
