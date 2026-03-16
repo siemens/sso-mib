@@ -177,6 +177,10 @@ static JsonObject *mib_client_app_get_accounts_raw(MIBClientApp *app)
 	return accounts;
 }
 
+/**
+ * If no upn is provided, return the first account.
+ * On error or when the no account has a matching upn return null.
+ */
 static JsonObject *mib_client_app_get_account_by_upn_raw(MIBClientApp *app,
 														 const gchar *upn)
 {
@@ -191,21 +195,24 @@ static JsonObject *mib_client_app_get_account_by_upn_raw(MIBClientApp *app,
 		goto err;
 	}
 	for (guint i = 0; i < json_array_get_length(accounts_array); i++) {
-		account = json_array_get_object_element(accounts_array, i);
+		JsonObject *_account = json_array_get_object_element(accounts_array, i);
 		if (!upn) {
 			g_debug("no upn provided");
+			account = _account;
 			break;
 		}
-		if (!json_object_has_member(account, "username"))
-			break;
+		if (!json_object_has_member(_account, "username"))
+			continue;
 		const gchar *username =
-			json_object_get_string_member(account, "username");
+			json_object_get_string_member(_account, "username");
 		if (g_strcmp0(username, upn) == 0) {
 			g_debug("account matching UPN found");
+			account = _account;
 			break;
 		}
 	}
-	json_object_ref(account);
+	if (account)
+		json_object_ref(account);
 err:
 	json_object_unref(accounts);
 	return account;
