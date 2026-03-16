@@ -360,16 +360,18 @@ gchar *mib_client_app_get_linux_broker_version(MIBClientApp *app,
 	g_assert(app);
 	g_assert(msal_cpp_version);
 
-	JsonObject *version_json;
-	gchar *version;
+	JsonObject *version_json = NULL;
+	gchar *version = NULL;
 	version_json = mib_get_linux_broker_version_raw(app, msal_cpp_version);
 	if (!version_json ||
 		!json_object_has_member(version_json, "linuxBrokerVersion")) {
-		return NULL;
+		goto err;
 	}
 	version = g_strdup(
 		json_object_get_string_member(version_json, "linuxBrokerVersion"));
-	json_object_unref(version_json);
+err:
+	if (version_json)
+		json_object_unref(version_json);
 	return version;
 }
 
