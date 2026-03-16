@@ -215,6 +215,16 @@ static void print_account(MIBAccount *account, gchar *prefix)
 	g_print("%susername: %s\n", prefix, mib_account_get_username(account));
 }
 
+static void print_account_list(GSList *accounts, gchar *prefix)
+{
+	int i = 0;
+	for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
+		g_print("# Account %d\n", i++);
+		MIBAccount *account = (MIBAccount *)iter->data;
+		print_account(account, "  ");
+	}
+}
+
 static void json_builder_add_account(JsonBuilder *builder, MIBAccount *account)
 {
 	char realm_str[37];
@@ -261,6 +271,32 @@ static void json_builder_add_account(JsonBuilder *builder, MIBAccount *account)
 
 	json_builder_set_member_name(builder, "username");
 	json_builder_add_string_value(builder, mib_account_get_username(account));
+}
+
+static void json_print_account(MIBAccount *account)
+{
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_object(builder);
+	json_builder_add_account(builder, account);
+	json_builder_end_object(builder);
+	print_json_builder(builder);
+	g_object_unref(builder);
+}
+
+static void json_print_account_list(GSList *accounts)
+{
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_array(builder);
+
+	for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
+		json_builder_begin_object(builder);
+		json_builder_add_account(builder, (MIBAccount *)iter->data);
+		json_builder_end_object(builder);
+	}
+
+	json_builder_end_array(builder);
+	print_json_builder(builder);
+	g_object_unref(builder);
 }
 
 static const char *auth_scheme_to_str(enum MIB_AUTH_SCHEME scheme)
@@ -583,7 +619,14 @@ int main(int argc, char **argv)
 			g_object_unref(cancellable);
 			return 1;
 		}
-		print_account(account, "  ");
+		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
+			print_account(account, "  ");
+		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
+			json_print_account(account);
+		} else {
+			g_print("Error[getAccounts]: Unsupported output format: %s\n",
+					format);
+		}
 		g_object_unref(account);
 	} else if (strcmp(command, "getAccounts") == 0) {
 		GSList *accounts = mib_client_app_get_accounts(app);
@@ -593,10 +636,13 @@ int main(int argc, char **argv)
 			g_object_unref(cancellable);
 			return 1;
 		}
-		for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
-			g_print("# Account %d\n", account_idx++);
-			MIBAccount *account = (MIBAccount *)iter->data;
-			print_account(account, "  ");
+		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
+			print_account_list(accounts, " ");
+		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
+			json_print_account_list(accounts);
+		} else {
+			g_print("Error[getAccounts]: Unsupported output format: %s\n",
+					format);
 		}
 		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 	} else if (strcmp(command, "removeAccount") == 0) {
