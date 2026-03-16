@@ -714,8 +714,8 @@ MIBPrtSsoCookie *mib_client_app_acquire_prt_sso_cookie(MIBClientApp *app,
 	return cookie;
 }
 
-static JsonObject *mib_generate_signed_http_request_raw(
-	MIBClientApp *app, const gchar *home_account_id, JsonObject *pop_params)
+static JsonObject *mib_generate_signed_http_request_raw(MIBClientApp *app,
+														JsonObject *pop_params)
 {
 	GError *error = NULL;
 	gboolean ok;
@@ -723,7 +723,6 @@ static JsonObject *mib_generate_signed_http_request_raw(
 	JsonObject *params = json_object_new();
 	json_object_set_string_member(params, "clientId",
 								  mib_client_app_get_client_id(app));
-	json_object_set_string_member(pop_params, "homeAccountId", home_account_id);
 	json_object_ref(pop_params);
 	json_object_set_object_member(params, "popParams", pop_params);
 	debug_print_json_object("mib_generate_signed_http_request_raw", "request",
@@ -755,6 +754,7 @@ gchar *mib_client_app_generate_signed_http_request(MIBClientApp *app,
 {
 	JsonObject *params_json;
 	gchar *access_token = NULL;
+	const gchar *account_id = NULL;
 
 	g_assert(app);
 	g_assert(account);
@@ -764,8 +764,9 @@ gchar *mib_client_app_generate_signed_http_request(MIBClientApp *app,
 	} else {
 		params_json = json_object_new();
 	}
-	JsonObject *token = mib_generate_signed_http_request_raw(
-		app, mib_account_get_home_account_id(account), params_json);
+	account_id = mib_account_get_home_account_id(account);
+	json_object_set_string_member(params_json, "homeAccountId", account_id);
+	JsonObject *token = mib_generate_signed_http_request_raw(app, params_json);
 	json_object_unref(params_json);
 	if (!token) {
 		return NULL;
