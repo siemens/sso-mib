@@ -541,7 +541,6 @@ static JsonObject *mib_acquire_token_interactive_raw(
 	}
 	JsonNode *auth_params_node = json_node_new(JSON_NODE_OBJECT);
 	json_node_set_object(auth_params_node, auth_params);
-	json_object_unref(auth_params);
 
 	JsonObject *params_obj = json_object_new();
 	/* if a re-auth is requested, clear the account */
@@ -549,6 +548,8 @@ static JsonObject *mib_acquire_token_interactive_raw(
 		json_object_remove_member(auth_params, "account");
 		json_object_remove_member(auth_params, "username");
 	}
+	json_object_unref(auth_params);
+
 	json_object_set_member(params_obj, "authParameters", auth_params_node);
 	debug_print_json_object("mib_acquire_token_interactive_raw", "request",
 							params_obj);
