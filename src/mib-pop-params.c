@@ -19,8 +19,7 @@ G_DEFINE_TYPE(MIBPopParams, mib_pop_params, G_TYPE_OBJECT)
 
 static void mib_pop_params_finalize(GObject *gobject)
 {
-	MIBPopParams *priv =
-		mib_pop_params_get_instance_private(MIB_POP_PARAMS(gobject));
+	MIBPopParams *priv = MIB_POP_PARAMS(gobject);
 	g_clear_pointer(&priv->resource_req_uri, g_free);
 	g_clear_pointer(&priv->shr_claims, g_free);
 	g_clear_pointer(&priv->shr_nonce, g_free);
