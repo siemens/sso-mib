@@ -220,17 +220,21 @@ static void json_builder_add_account(JsonBuilder *builder, MIBAccount *account)
 	mib_account_get_realm(account, realm);
 	uuid_unparse(realm, realm_str);
 
-	json_builder_set_member_name(builder, "client_info");
-	json_builder_add_string_value(builder,
-								  mib_account_get_client_info(account));
+	if (mib_account_get_client_info(account)) {
+		json_builder_set_member_name(builder, "client_info");
+		json_builder_add_string_value(builder,
+									  mib_account_get_client_info(account));
+	}
 
 	json_builder_set_member_name(builder, "environment");
 	json_builder_add_string_value(builder,
 								  mib_account_get_environment(account));
 
-	json_builder_set_member_name(builder, "family_name");
-	json_builder_add_string_value(builder,
-								  mib_account_get_family_name(account));
+	if (mib_account_get_family_name(account)) {
+		json_builder_set_member_name(builder, "family_name");
+		json_builder_add_string_value(builder,
+									  mib_account_get_family_name(account));
+	}
 
 	json_builder_set_member_name(builder, "given_name");
 	json_builder_add_string_value(builder, mib_account_get_given_name(account));
