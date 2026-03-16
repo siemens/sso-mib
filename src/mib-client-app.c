@@ -241,10 +241,10 @@ GSList *mib_client_app_get_accounts(MIBClientApp *self)
 			g_warning("error parsing account data");
 			break;
 		}
-		accounts_list = g_slist_append(accounts_list, mib_account);
+		accounts_list = g_slist_prepend(accounts_list, mib_account);
 	}
 	json_object_unref(accounts);
-	return accounts_list;
+	return g_slist_reverse(accounts_list);
 }
 
 MIBAccount *mib_client_app_get_account_by_upn(MIBClientApp *app,
