@@ -19,8 +19,7 @@ G_DEFINE_TYPE(MIBPrtSsoCookie, mib_prt_sso_cookie, G_TYPE_OBJECT)
 
 static void mib_prt_sso_cookie_finalize(GObject *gobject)
 {
-	MIBPrtSsoCookie *priv =
-		mib_prt_sso_cookie_get_instance_private(MIB_PRT_SSO_COOKIE(gobject));
+	MIBPrtSsoCookie *priv = MIB_PRT_SSO_COOKIE(gobject);
 	g_clear_pointer(&priv->name, g_free);
 	g_clear_pointer(&priv->content, g_free);
 	G_OBJECT_CLASS(mib_prt_sso_cookie_parent_class)->finalize(gobject);

@@ -59,8 +59,7 @@ G_DEFINE_TYPE(MIBClientApp, mib_client_app, G_TYPE_OBJECT)
 
 static void mib_client_app_finalize(GObject *gobject)
 {
-	MIBClientApp *priv =
-		mib_client_app_get_instance_private(MIB_CLIENT_APP(gobject));
+	MIBClientApp *priv = MIB_CLIENT_APP(gobject);
 	g_clear_object(&priv->cancellable);
 	g_clear_object(&priv->broker);
 	g_clear_pointer(&priv->authority, g_free);

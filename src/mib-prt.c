@@ -24,7 +24,7 @@ G_DEFINE_TYPE(MIBPrt, mib_prt, G_TYPE_OBJECT)
 
 static void mib_prt_finalize(GObject *gobject)
 {
-	MIBPrt *self = mib_prt_get_instance_private(MIB_PRT(gobject));
+	MIBPrt *self = MIB_PRT(gobject);
 	g_clear_pointer(&self->access_token, g_free);
 	g_clear_object(&self->account);
 	g_clear_pointer(&self->client_info, g_free);

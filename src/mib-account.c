@@ -24,7 +24,7 @@ G_DEFINE_TYPE(MIBAccount, mib_account, G_TYPE_OBJECT)
 
 static void mib_account_finalize(GObject *gobject)
 {
-	MIBAccount *self = mib_account_get_instance_private(MIB_ACCOUNT(gobject));
+	MIBAccount *self = MIB_ACCOUNT(gobject);
 	g_clear_pointer(&self->client_info, g_free);
 	g_clear_pointer(&self->environment, g_free);
 	g_clear_pointer(&self->family_name, g_free);
