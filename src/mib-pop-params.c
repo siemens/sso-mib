@@ -95,6 +95,7 @@ void mib_pop_params_set_shr_claims(MIBPopParams *self, const gchar *claims)
 {
 	g_assert(self);
 	g_assert(claims);
+	g_free(self->shr_claims);
 	self->shr_claims = g_strdup(claims);
 }
 
@@ -102,6 +103,7 @@ void mib_pop_params_set_shr_nonce(MIBPopParams *self, const gchar *nonce)
 {
 	g_assert(self);
 	g_assert(nonce);
+	g_free(self->shr_nonce);
 	self->shr_nonce = g_strdup(nonce);
 }
 
@@ -109,5 +111,6 @@ void mib_pop_params_set_kid(MIBPopParams *self, const gchar *kid)
 {
 	g_assert(self);
 	g_assert(kid);
+	g_free(self->kid);
 	self->kid = g_strdup(kid);
 }
