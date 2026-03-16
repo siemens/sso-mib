@@ -415,7 +415,7 @@ static MIBPopParams *mib_pop_params_from_json(JsonObject *params_json)
 	if (json_object_has_member(params_json, "shrNonce")) {
 		mib_pop_params_set_shr_nonce(
 			params,
-			g_strdup(json_object_get_string_member(params_json, "shrNonce")));
+			json_object_get_string_member(params_json, "shrNonce"));
 	}
 	return params;
 err:
