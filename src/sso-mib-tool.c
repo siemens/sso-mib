@@ -6,6 +6,7 @@
 #include <libgen.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include <json-glib/json-glib.h>
 #ifdef WITH_LIBJWT
 #include <jwt.h>
@@ -27,7 +28,8 @@ static void sig_handler(int signo)
 {
 	if (signo == SIGINT) {
 		if (cancellable) {
-			g_print("Interrupted. Cancel in-flight operations.\n");
+			const char msg[] = "Interrupted. Cancel in-flight operations.\n";
+			write(STDERR_FILENO, msg, sizeof(msg) - 1);
 			g_cancellable_cancel(cancellable);
 		}
 	}
