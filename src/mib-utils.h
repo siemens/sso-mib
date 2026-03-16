@@ -16,5 +16,6 @@
 
 gchar *json_object_to_string(JsonObject *object);
 JsonObject *json_object_from_string(const gchar *data);
-void debug_print_json_object(gchar *func, gchar *scope, JsonObject *object);
+void debug_print_json_object(const gchar *func, const gchar *scope,
+							 JsonObject *object);
 JsonArray *mib_scopes_to_json(GSList *scopes);

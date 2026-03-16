@@ -31,7 +31,8 @@ static void print_json_object(JsonObject *object)
 	g_object_unref(gen);
 }
 
-void debug_print_json_object(gchar *func, gchar *scope, JsonObject *object)
+void debug_print_json_object(const gchar *func, const gchar *scope,
+							 JsonObject *object)
 {
 	g_debug("json-object from %s,%s", func, scope);
 	if (!object) {
