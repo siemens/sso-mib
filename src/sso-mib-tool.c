@@ -275,7 +275,7 @@ static const char *auth_scheme_to_str(enum MIB_AUTH_SCHEME scheme)
 static void print_prt_token(MIBPrt *token, int decode)
 {
 	char buffer[32];
-	struct tm *tm_info;
+	struct tm tm_info;
 	struct timeval tv;
 	const char *token_type =
 		auth_scheme_to_str(mib_prt_get_access_token_type(token));
@@ -299,8 +299,8 @@ static void print_prt_token(MIBPrt *token, int decode)
 	}
 	g_print("\n");
 	tv.tv_sec = mib_prt_get_expires_on(token);
-	tm_info = localtime(&tv.tv_sec);
-	strftime(buffer, sizeof(buffer) - 1, "%Y-%m-%d %H:%M:%S", tm_info);
+	localtime_r(&tv.tv_sec, &tm_info);
+	strftime(buffer, sizeof(buffer) - 1, "%Y-%m-%d %H:%M:%S", &tm_info);
 	g_print("%sexpires-on: %s\n", p, buffer);
 	g_print("%saccount:\n", p);
 	print_account(mib_prt_get_account(token), "# ");
@@ -339,9 +339,10 @@ static void json_print_prt_token(MIBPrt *token, int decode)
 
 	struct timeval tv;
 	tv.tv_sec = mib_prt_get_expires_on(token);
-	struct tm *tm_info = localtime(&tv.tv_sec);
+	struct tm tm_info;
+	localtime_r(&tv.tv_sec, &tm_info);
 	char buffer[32];
-	strftime(buffer, sizeof(buffer) - 1, "%Y-%m-%d %H:%M:%S", tm_info);
+	strftime(buffer, sizeof(buffer) - 1, "%Y-%m-%d %H:%M:%S", &tm_info);
 	json_builder_set_member_name(builder, "expires_on");
 	json_builder_add_string_value(builder, buffer);
 
