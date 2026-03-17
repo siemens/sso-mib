@@ -29,7 +29,9 @@ static void sig_handler(int signo)
 	if (signo == SIGINT) {
 		if (cancellable) {
 			const char msg[] = "Interrupted. Cancel in-flight operations.\n";
-			write(STDERR_FILENO, msg, sizeof(msg) - 1);
+			// use a dummy conditional to denote we don't care about the result
+			if (write(STDERR_FILENO, msg, sizeof(msg) - 1)) {
+			}
 			g_cancellable_cancel(cancellable);
 		}
 	}
