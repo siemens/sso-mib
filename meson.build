@@ -52,6 +52,7 @@ identity_broker_obj = static_library(
   'identity_broker_obj',
   identity_broker,
   c_args : ['-Wno-pedantic'],
+  gnu_symbol_visibility : 'hidden',
   dependencies : [giodep],
   install : false)
 
