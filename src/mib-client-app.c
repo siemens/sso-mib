@@ -170,9 +170,13 @@ static JsonObject *mib_client_app_get_accounts_raw(MIBClientApp *app)
 		return NULL;
 	}
 	JsonObject *accounts = json_object_from_string(response);
+	g_free(response);
+	if (!accounts) {
+		g_warning("could not parse accounts response");
+		return NULL;
+	}
 	debug_print_json_object("mib_client_app_get_accounts_raw", "response",
 							accounts);
-	g_free(response);
 	return accounts;
 }
 
@@ -484,8 +488,12 @@ mib_acquire_token_silent_raw(MIBClientApp *app, JsonObject *account,
 		return NULL;
 	}
 	token = json_object_from_string(response);
-	debug_print_json_object("mib_acquire_token_silent_raw", "response", token);
 	g_free(response);
+	if (!token) {
+		g_warning("could not parse token response");
+		return NULL;
+	}
+	debug_print_json_object("mib_acquire_token_silent_raw", "response", token);
 	return token;
 }
 
@@ -573,9 +581,13 @@ static JsonObject *mib_acquire_token_interactive_raw(
 		return NULL;
 	}
 	token = json_object_from_string(response);
+	g_free(response);
+	if (!token) {
+		g_warning("could not parse token response");
+		return NULL;
+	}
 	debug_print_json_object("mib_acquire_token_interactive_raw", "response",
 							token);
-	g_free(response);
 	return token;
 }
 
@@ -684,9 +696,13 @@ static JsonObject *mib_acquire_prt_sso_cookie_raw(MIBClientApp *app,
 		return NULL;
 	}
 	cookie = json_object_from_string(response);
+	g_free(response);
+	if (!cookie) {
+		g_warning("could not parse PRT SSO cookie response");
+		return NULL;
+	}
 	debug_print_json_object("mib_acquire_prt_sso_cookie_raw", "response",
 							cookie);
-	g_free(response);
 	return cookie;
 }
 
@@ -742,9 +758,13 @@ static JsonObject *mib_generate_signed_http_request_raw(MIBClientApp *app,
 		return NULL;
 	}
 	JsonObject *token = json_object_from_string(response);
+	g_free(response);
+	if (!token) {
+		g_warning("could not parse signed HTTP request response");
+		return NULL;
+	}
 	debug_print_json_object("mib_generate_signed_http_request_raw", "response",
 							token);
-	g_free(response);
 	return token;
 }
 
