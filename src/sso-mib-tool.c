@@ -195,7 +195,7 @@ static void json_print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)
 
 static void print_account(MIBAccount *account, gchar *prefix)
 {
-	char realm_str[37];
+	char realm_str[UUID_STR_LEN];
 	uuid_t realm;
 	mib_account_get_realm(account, realm);
 	uuid_unparse(realm, realm_str);
@@ -229,7 +229,7 @@ static void print_account_list(GSList *accounts, gchar *prefix)
 
 static void json_builder_add_account(JsonBuilder *builder, MIBAccount *account)
 {
-	char realm_str[37];
+	char realm_str[UUID_STR_LEN];
 	uuid_t realm;
 	mib_account_get_realm(account, realm);
 	uuid_unparse(realm, realm_str);
