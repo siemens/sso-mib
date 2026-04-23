@@ -50,7 +50,7 @@ JsonObject *json_object_from_string(const gchar *data)
 	gboolean parse_ok = json_parser_load_from_data(parser, data, -1, &error);
 	if (!parse_ok) {
 		g_warning("could not parse JSON: %s", error->message);
-		g_warning("data: %s", data);
+		g_debug("data: %s", data);
 		g_error_free(error);
 		g_object_unref(parser);
 		return NULL;
