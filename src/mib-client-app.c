@@ -90,13 +90,14 @@ MIBClientApp *mib_public_client_app_new(const gchar *client_id,
 	g_assert(client_id);
 	g_assert(authority);
 
-	if (strlen(client_id) != UUID_STR_LEN - 1) {
+	uuid_t client_uuid;
+	if (uuid_parse(client_id, client_uuid) != 0) {
 		g_warning("client id is not a UUID\n");
 		return NULL;
 	}
 
 	MIBClientApp *self = g_object_new(MIB_TYPE_CLIENT_APP, NULL);
-	strncpy(self->client_id, client_id, UUID_STR_LEN - 1);
+	uuid_unparse_lower(client_uuid, self->client_id);
 	uuid_generate_random(correlation_id);
 	uuid_unparse_lower(correlation_id, self->correlation_id);
 	self->authority = g_strdup(authority);
