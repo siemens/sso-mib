@@ -9,6 +9,7 @@
 #include "sso-mib.h"
 #include <curl/curl.h>
 #include <json-glib/json-glib.h>
+#include <stdint.h>
 
 /* OneDrive Client for Linux */
 #define CLIENT_ID "d50ca740-c83f-4d1b-b616-12c519384f0c"
@@ -31,8 +32,15 @@ struct memory {
  */
 static size_t cb(char *data, size_t size, size_t nmemb, void *clientp)
 {
-	size_t realsize = size * nmemb;
+	size_t realsize;
 	struct memory *mem = (struct memory *)clientp;
+
+	if (size != 0 && nmemb > SIZE_MAX / size)
+		return 0;
+	realsize = size * nmemb;
+
+	if (realsize > SIZE_MAX - mem->size - 1)
+		return 0;
 
 	char *ptr = realloc(mem->response, mem->size + realsize + 1);
 	if (!ptr)
