@@ -199,12 +199,15 @@ static void print_account(MIBAccount *account, gchar *prefix)
 	uuid_t realm;
 	mib_account_get_realm(account, realm);
 	uuid_unparse(realm, realm_str);
-	g_print("%sclient-info: %s\n", prefix,
-			mib_account_get_client_info(account));
+	const gchar *client_info = mib_account_get_client_info(account);
+	const gchar *family_name = mib_account_get_family_name(account);
+
+	if (client_info)
+		g_print("%sclient-info: %s\n", prefix, client_info);
 	g_print("%senvironment: %s\n", prefix,
 			mib_account_get_environment(account));
-	g_print("%sfamily-name: %s\n", prefix,
-			mib_account_get_family_name(account));
+	if (family_name)
+		g_print("%sfamily-name: %s\n", prefix, family_name);
 	g_print("%sgiven-name: %s\n", prefix, mib_account_get_given_name(account));
 	g_print("%shome-account-id: %s\n", prefix,
 			mib_account_get_home_account_id(account));
