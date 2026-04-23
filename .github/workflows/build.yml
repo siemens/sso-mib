@@ -72,51 +72,6 @@ jobs:
         with:
           path: build/api/
 
-  package:
-    strategy:
-      matrix:
-        distro: ["debian:bookworm", "debian:trixie", "debian:forky", "ubuntu:noble"]
-    runs-on: ubuntu-24.04
-    container: ${{ matrix.distro }}
-    permissions:
-      id-token: write
-      attestations: write
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: install dependencies
-        run: |
-          if [[ "${{ matrix.distro }}" == "debian:bookworm" ]]; then
-            # Add backports repository for Debian bookworm
-            echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list
-            echo -e "Package: meson\nPin: release n=bookworm-backports\nPin-Priority: 501" | \
-              tee /etc/apt/preferences.d/meson-backports.pref > /dev/null
-          fi
-          apt-get update
-          apt-get install -y --no-install-recommends devscripts equivs meson
-          mk-build-deps --install -t "apt-get --no-install-recommends -y"
-        shell: bash
-      - name: build package
-        run: |
-          dpkg-buildpackage -us -uc -b
-          mkdir linux-amd64-deb && cp ../*.deb linux-amd64-deb
-      - name: generate package name
-        run: echo "PN=${{ matrix.distro }}" | sed s/:/-/ >> $GITHUB_ENV
-      - name: upload package for ${{ matrix.distro }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.PN }} packages
-          path: |
-            linux-amd64-deb/*.deb
-      - name: attest package artifacts
-        uses: actions/attest-build-provenance@v1
-        if: github.event_name == 'push'
-        with:
-          subject-path: |
-            linux-amd64-deb/*.deb
-
   build-with-libjwt3:
     runs-on: ubuntu-24.04
     container: "debian:trixie"
