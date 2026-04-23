@@ -580,6 +580,10 @@ int main(int argc, char **argv)
 		g_print("Error: -c <command> is required\n");
 		return 1;
 	}
+	if (account_idx < 0) {
+		g_print("Error: -a <account-idx> cannot be negative\n");
+		return 1;
+	}
 	if (scopes && (strncmp(command, "acquire", strlen("acquire")) != 0)) {
 		g_slist_free_full(scopes, g_free);
 		g_printerr(
@@ -652,11 +656,15 @@ int main(int argc, char **argv)
 		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 	} else if (strcmp(command, "removeAccount") == 0) {
 		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts) {
-			g_print("No accounts registered\n");
+		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
+			if (!accounts)
+				g_print("No accounts registered\n");
+			else
+				g_print("Invalid account index\n");
+			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 			g_object_unref(app);
 			g_object_unref(cancellable);
-			return 0;
+			return 1;
 		}
 		MIBAccount *account = g_slist_nth_data(accounts, account_idx);
 		g_print("Selected account: %s\n", mib_account_get_username(account));
@@ -673,9 +681,11 @@ int main(int argc, char **argv)
 	} else if (strcmp(command, "acquirePrtSsoCookie") == 0) {
 		scopes = default_scope_if_empty(scopes);
 		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts) {
-			g_print("Error[acquirePrtSsoCookie]: No accounts found\n");
+		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
+			g_print("Error[acquirePrtSsoCookie]: %s\n",
+					!accounts ? "No accounts found" : "Invalid account index");
 			g_slist_free_full(scopes, g_free);
+			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 			g_object_unref(app);
 			g_object_unref(cancellable);
 			return 1;
@@ -705,9 +715,11 @@ int main(int argc, char **argv)
 	} else if (strcmp(command, "acquireTokenSilent") == 0) {
 		scopes = default_scope_if_empty(scopes);
 		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts) {
-			g_print("Error[acquireTokenSilent]: No accounts found\n");
+		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
+			g_print("Error[acquireTokenSilent]: %s\n",
+					!accounts ? "No accounts found" : "Invalid account index");
 			g_slist_free_full(scopes, g_free);
+			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 			g_object_unref(app);
 			g_object_unref(cancellable);
 			return 1;
@@ -771,8 +783,10 @@ int main(int argc, char **argv)
 		}
 	} else if (strcmp(command, "generateSignedHttpRequest") == 0) {
 		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts) {
-			g_print("Error[generateSignedHttpRequest]: No accounts found\n");
+		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
+			g_print("Error[generateSignedHttpRequest]: %s\n",
+					!accounts ? "No accounts found" : "Invalid account index");
+			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 			g_object_unref(app);
 			g_object_unref(cancellable);
 			return 1;
