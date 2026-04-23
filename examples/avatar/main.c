@@ -77,8 +77,8 @@ int main()
 
 	printf("Acquire Bearer token\n");
 	scopes = g_slist_append(scopes, g_strdup("User.Read"));
-	MIBPrt *prt =
-		mib_client_app_acquire_token_silent(app, account, scopes, NULL, NULL, NULL);
+	MIBPrt *prt = mib_client_app_acquire_token_silent(app, account, scopes,
+													  NULL, NULL, NULL);
 	if (!prt) {
 		printf("Failed to get Graph API token\n");
 		ret = -1;
@@ -90,7 +90,8 @@ int main()
 	printf("Successfully stored avatar picture in 'avatar.jpg'\n");
 
 cleanup:
-	fclose(f);
+	if (f)
+		fclose(f);
 	g_slist_free_full(scopes, (GDestroyNotify)g_free);
 	g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 	g_clear_object(&prt);
