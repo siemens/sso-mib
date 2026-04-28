@@ -72,7 +72,7 @@ jobs:
         with:
           path: build/api/
 
-  build-with-libjwt3:
+  build-with-libjwt-variants:
     runs-on: ubuntu-24.04
     container: "debian:trixie"
     steps:
@@ -87,6 +87,10 @@ jobs:
             build-essential meson cmake ninja-build curl ca-certificates \
             libjansson-dev libssl-dev \
             libgio-2.0-dev libjson-glib-dev libdbus-1-dev uuid-dev
+      - name: build sso-mib-tool without libjwt
+        run: |
+          meson -Dlibjwt=disabled build-minimal
+          ninja -C build-minimal sso-mib-tool
       - name: build libjwt3
         run: |
           curl -L -q https://github.com/benmcollins/libjwt/releases/download/v${LIBJWT3_VERSION}/libjwt-${LIBJWT3_VERSION}.tar.xz \
@@ -100,7 +104,7 @@ jobs:
           cmake --build build
           cmake --install build
           cd $WORKDIR
-      - name: build sso-mib-tool
+      - name: build sso-mib-tool with libjwt3
         run: | 
           meson -Dlibjwt=enabled build
           cd build && ninja sso-mib-tool
