@@ -98,26 +98,6 @@ static void print_decoded_jwt(const gchar *token)
 	free(hdrs);
 	free(grants);
 }
-#else
-static void print_decoded_jwt(const gchar *token)
-{
-	g_printerr("token decoding requires libjwt (dependency missing)\n");
-}
-#endif
-
-static void print_json_builder(JsonBuilder *builder)
-{
-	JsonGenerator *generator = json_generator_new();
-	JsonNode *root = json_builder_get_root(builder);
-	json_generator_set_root(generator, root);
-
-	gchar *buf = json_generator_to_data(generator, NULL);
-	g_print("%s\n", buf);
-	g_free(buf);
-
-	json_node_free(root);
-	g_object_unref(generator);
-}
 
 static void json_builder_add_jwt_token(JsonBuilder *builder, const gchar *token)
 {
@@ -156,6 +136,31 @@ static void json_builder_add_jwt_token(JsonBuilder *builder, const gchar *token)
 	free(hdrs);
 	free(grants);
 	json_builder_end_object(builder);
+}
+#else
+static void print_decoded_jwt(const gchar *token)
+{
+	g_printerr("token decoding requires libjwt (dependency missing)\n");
+}
+
+static void json_builder_add_jwt_token(JsonBuilder *builder, const gchar *token)
+{
+	g_printerr("token decoding requires libjwt (dependency missing)\n");
+}
+#endif
+
+static void print_json_builder(JsonBuilder *builder)
+{
+	JsonGenerator *generator = json_generator_new();
+	JsonNode *root = json_builder_get_root(builder);
+	json_generator_set_root(generator, root);
+
+	gchar *buf = json_generator_to_data(generator, NULL);
+	g_print("%s\n", buf);
+	g_free(buf);
+
+	json_node_free(root);
+	g_object_unref(generator);
 }
 
 static void print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)
