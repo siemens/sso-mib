@@ -102,7 +102,6 @@ int main(int argc, char **argv)
 		goto cleanup;
 
 	mib_client_app_set_redirect_uri(app, APP_REDIRECT_URI);
-	scopes = g_slist_append(scopes, "offline_access");
 	scopes = g_slist_append(scopes, "https://outlook.office365.com/SMTP.Send");
 
 	token = mib_client_app_acquire_token_interactive(
