@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 	scopes = g_slist_append(scopes, "https://outlook.office365.com/SMTP.Send");
 
 	token = mib_client_app_acquire_token_interactive(
-		app, scopes, MIB_PROMPT_NONE, input.username, NULL, NULL, NULL);
+		app, scopes, MIB_PROMPT_UNSET, input.username, NULL, NULL, NULL);
 	if (!token) {
 		g_printerr("could not get token\n");
 		goto cleanup;
