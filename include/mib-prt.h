@@ -16,7 +16,7 @@
 
 /**
  * \defgroup prt Primary Refresh Token
- * \brief Primary Refresh Token
+ * \brief Token derived from Primary Refresh Token
  * \addtogroup prt
  *  @{
  */

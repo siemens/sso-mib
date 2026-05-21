@@ -16,7 +16,7 @@
 
 /**
  * \defgroup prtssocookie PRT SSO Cookie
- * \brief PRT SSO Cookie (MX-OAPXBC OAuth2 extension)
+ * \brief PRT SSO Cookie (MS-OAPXBC OAuth2 extension)
  * \addtogroup prtssocookie
  *  @{
  */
