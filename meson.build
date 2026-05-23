@@ -13,6 +13,10 @@ project(
   ]
 )
 project_description = 'Library to interact with the Microsoft Device Broker for SSO'
+project_authors = [
+  'Felix Moessbauer <felix.moessbauer@siemens.com>',
+  'Andreas Ziegler <ziegler.andreas@siemens.com>',
+]
 add_project_arguments('-Wno-unused-parameter', language : 'c')
 
 libsso_mib_hdrs = [
@@ -119,6 +123,23 @@ gch_smtp_office365 = executable(
   dependencies: [glibdep, giodep],
   install_tag : 'git-cred-helper'
 )
+
+man_config = configuration_data()
+man_config.set('PACKAGE_NAME', meson.project_name())
+man_config.set('PACKAGE_VERSION', meson.project_version())
+man_config.set('PACKAGE_AUTHORS', '\n.br\n'.join(project_authors))
+
+configure_file(input : 'man/sso-mib-tool.1.in',
+               output : 'sso-mib-tool.1',
+               configuration : man_config,
+               install : true,
+               install_dir : join_paths(get_option('mandir'), 'man1'))
+
+configure_file(input : 'man/sso-mib-gch-smtp-o365.1.in',
+               output : 'sso-mib-gch-smtp-o365.1',
+               configuration : man_config,
+               install : true,
+               install_dir : join_paths(get_option('mandir'), 'man1'))
 
 if get_option('documentation')
   subdir('docs')
