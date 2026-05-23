@@ -59,7 +59,6 @@ typedef void *MIBClientApp;
 
 /**
  * \brief Start a new session
- * \ingroup highlevel
  *
  * This function creates a new session for the given client_id.
  * The user is responsible for freeing the object with \c g_object_unref .
