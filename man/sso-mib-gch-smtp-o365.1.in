@@ -1,0 +1,140 @@
+.\" SPDX-FileCopyrightText: (C) 2025 Siemens AG
+.\" SPDX-License-Identifier: MIT
+.TH SSO\-MIB\-GCH\-SMTP\-O365 1 "2025" "@PACKAGE_NAME@ @PACKAGE_VERSION@" "User Commands"
+.SH NAME
+sso\-mib\-gch\-smtp\-o365 \- git credential helper for Office 365 SMTP using Microsoft Identity Broker
+.SH SYNOPSIS
+.B sso\-mib\-gch\-smtp\-o365
+.RI [ client_id ]
+.RI [ authority ]
+.I command
+.SH DESCRIPTION
+.B sso\-mib\-gch\-smtp\-o365
+is a git credential helper that authenticates
+.BR git\-send\-email (1)
+on Office 365 using OAuth2 tokens obtained from the Microsoft Identity Broker
+via the sso-mib library.
+.PP
+It acquires an access token for the
+.I https://outlook.office365.com/SMTP.Send
+scope and outputs credentials in the format expected by
+.BR git\-credential (1).
+.PP
+The helper only responds to the
+.B get
+command for the
+.B smtp
+protocol. The
+.BR approve ,
+.BR reject ,
+and
+.B capability
+commands are silently ignored.
+.SH ARGUMENTS
+.TP
+.I client_id
+Azure client application ID. Can also be set via the environment variable
+.BR MIB_GCH_SMTP_CLIENT_ID .
+The command-line argument takes precedence.
+.TP
+.I authority
+Entra ID (Azure AD) authority URL (e.g.\&
+.IR https://login.microsoftonline.com/<tenant_id> ).
+Can also be set via the environment variable
+.BR MIB_GCH_SMTP_AUTHORITY .
+The command-line argument takes precedence.
+.TP
+.I command
+The git credential helper command. One of
+.BR get ,
+.BR approve ,
+.BR reject ,
+or
+.BR capability .
+Only
+.B get
+produces output.
+.SH ENVIRONMENT
+.TP
+.B MIB_GCH_SMTP_CLIENT_ID
+Azure client application ID. Used when no
+.I client_id
+argument is provided on the command line.
+.TP
+.B MIB_GCH_SMTP_AUTHORITY
+Entra ID authority URL. Used when no
+.I authority
+argument is provided on the command line.
+.TP
+.B G_MESSAGES_DEBUG=ssomib
+Enable debug logging of DBus call parameters via GLib's message logging system.
+.SH GIT CONFIGURATION
+Add the following to your
+.B .gitconfig
+to use this helper for SMTP credentials:
+.PP
+.RS
+.nf
+[credential "smtp://"]
+    helper = !sso\-mib\-gch\-smtp\-o365 <client_id> <authority>
+.fi
+.RE
+.PP
+Or, using environment variables:
+.PP
+.RS
+.nf
+[credential "smtp://"]
+    helper = !sso\-mib\-gch\-smtp\-o365
+.fi
+.RE
+.SH OUTPUT
+On a successful
+.B get
+command for the
+.B smtp
+protocol, the helper outputs:
+.PP
+.RS
+.nf
+username=<user@example.com>
+password=<access_token>
+password_expiry_utc=<epoch_seconds>
+authtype=bearer
+.fi
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+Success, or a non-applicable command/protocol was received.
+.TP
+.B 1
+An error occurred (e.g., missing authority or client ID, broker communication
+failure).
+.SH EXAMPLES
+Use with git send-email:
+.PP
+.RS
+.nf
+$ git config \-\-global credential.smtp://.helper \\
+    \(aq!sso\-mib\-gch\-smtp\-o365 <client_id> https://login.microsoftonline.com/<tenant_id>\(aq
+$ git send\-email \-\-smtp\-auth=xoauth2 *.patch
+.fi
+.RE
+.PP
+Test the helper manually:
+.PP
+.RS
+.nf
+$ echo "protocol=smtp" | sso\-mib\-gch\-smtp\-o365 <client_id> <authority> get
+.fi
+.RE
+.SH SEE ALSO
+.BR sso\-mib\-tool (1),
+.BR git\-credential (1),
+.BR git\-send\-email (1)
+.SH AUTHORS
+@PACKAGE_AUTHORS@
+.SH COPYRIGHT
+Copyright (C) 2025 Siemens AG.
+Licensed under MIT.

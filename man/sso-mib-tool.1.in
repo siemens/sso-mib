@@ -1,0 +1,186 @@
+.\" SPDX-FileCopyrightText: (C) 2025 Siemens AG
+.\" SPDX-License-Identifier: GPL-2.0-only
+.TH SSO\-MIB\-TOOL 1 "2025" "@PACKAGE_NAME@ @PACKAGE_VERSION@" "User Commands"
+.SH NAME
+sso\-mib\-tool \- interact with the Microsoft Identity Broker for SSO on Azure Entra ID
+.SH SYNOPSIS
+.B sso\-mib\-tool
+.I COMMAND
+.RI [ OPTION ]...\&
+.SH DESCRIPTION
+.B sso\-mib\-tool
+is a command-line frontend to the sso-mib library for interacting with a
+Microsoft Identity Broker via DBus. It can be used to list accounts,
+acquire authentication tokens (both silently and interactively),
+obtain PRT SSO cookies, and generate signed HTTP requests using
+Proof-of-Possession (PoP) tokens.
+.PP
+The tool implements support for the OIDC extension MS-OAPXBC, including
+requesting Primary Refresh Tokens and exchanging them for Access Tokens.
+.SH COMMANDS
+.TP
+.B getAccounts
+List all accounts registered with the broker. When used with
+.BR \-A ,
+returns a single account matching the given User Principal Name.
+.TP
+.B removeAccount
+Remove an account from the broker. Use
+.B \-a
+to specify the account index.
+.TP
+.B acquirePrtSsoCookie
+Acquire a PRT SSO cookie for the selected account. Requires a registered
+account. Default scope is
+.IR https://graph.microsoft.com/.default .
+.TP
+.B acquireTokenSilent
+Acquire an access token silently (without user interaction) using the
+Primary Refresh Token. Requires a registered account.
+.TP
+.B acquireTokenInteractive
+Acquire an access token interactively. This will prompt the user for
+authentication via the broker.
+.TP
+.B getLinuxBrokerVersion
+Query and display the version of the Linux identity broker.
+.TP
+.B generateSignedHttpRequest
+Generate a signed HTTP request token for the selected account. Requires
+Proof-of-Possession parameters to be specified with
+.BR \-P .
+.SH OPTIONS
+.TP
+.BI \-a " index"
+Select account by index (default: 0). The account index corresponds to the
+position in the list returned by
+.BR getAccounts .
+.TP
+.BI \-A " upn"
+Select account by User Principal Name (UPN), e.g.\&
+.IR user@example.com .
+.TP
+.B \-d
+Decode JWT tokens in the output. Requires libjwt support at compile time.
+.TP
+.BI \-f " format"
+Set output format. Supported values are
+.B text
+(default) and
+.BR json .
+.TP
+.B \-h
+Print a help message and exit.
+.TP
+.B \-I
+Enforce interactive token acquisition, even when a cached token is available.
+.TP
+.BI \-P " params"
+Proof-of-Possession parameters as a JSON string. Required for
+.BR generateSignedHttpRequest .
+The JSON object supports the following keys:
+.RS
+.TP
+.B authenticationScheme
+Either \fB"PoP"\fR or \fB"Bearer"\fR.
+.TP
+.B resourceRequestMethod
+HTTP method: \fB"GET"\fR, \fB"POST"\fR, or \fB"PUT"\fR.
+.TP
+.B resourceRequestUri
+The target resource URI.
+.TP
+.B shrClaims
+(Optional) Additional SHR claims.
+.TP
+.B shrNonce
+(Optional) SHR nonce value.
+.RE
+.TP
+.BI \-r " uri"
+OIDC redirect URI for the client application.
+.TP
+.BI \-s " client_id"
+Azure client application ID (default: Microsoft Edge on Linux,
+.IR d7b530a4\-7680\-4c23\-a8bf\-c52c121d2e87 ).
+.TP
+.BI \-S " scope"
+OIDC scope to request. This option can be specified multiple times to
+request multiple scopes. If not specified, defaults to
+.IR https://graph.microsoft.com/.default .
+.TP
+.BI \-t " token"
+Provide a token for renewal (used with
+.BR acquireTokenSilent ).
+.TP
+.BI \-x " authority"
+Entra ID (Azure AD) authority URL (default:
+.IR https://login.microsoftonline.com/common ).
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+An error occurred (e.g., no accounts found, invalid parameters, broker
+communication failure).
+.SH ENVIRONMENT
+.TP
+.B G_MESSAGES_DEBUG=ssomib
+Enable debug logging of DBus call parameters via GLib's message logging system.
+.SH EXAMPLES
+List all registered accounts:
+.PP
+.RS
+.nf
+$ sso\-mib\-tool getAccounts
+.fi
+.RE
+.PP
+Get account details by UPN in JSON format:
+.PP
+.RS
+.nf
+$ sso\-mib\-tool getAccounts \-A user@example.com \-f json
+.fi
+.RE
+.PP
+Acquire a token silently with decoded JWT output:
+.PP
+.RS
+.nf
+$ sso\-mib\-tool acquireTokenSilent \-d
+.fi
+.RE
+.PP
+Acquire a token interactively for SMTP access:
+.PP
+.RS
+.nf
+$ sso\-mib\-tool acquireTokenInteractive \-f json \\
+    \-s <client_id> \\
+    \-r https://login.microsoftonline.com/common/oauth2/nativeclient \\
+    \-x https://login.microsoftonline.com/<tenant_id> \\
+    \-S \(aqhttps://outlook.office365.com/SMTP.Send\(aq
+.fi
+.RE
+.PP
+Generate a signed HTTP request with PoP parameters:
+.PP
+.RS
+.nf
+$ sso\-mib\-tool generateSignedHttpRequest \\
+    \-P \(aq{"authenticationScheme":"PoP","resourceRequestMethod":"POST","resourceRequestUri":"https://example.com/"}\(aq
+.fi
+.RE
+.SH SIGNALS
+.TP
+.B SIGINT
+Cancels any in-flight broker operations gracefully.
+.SH SEE ALSO
+.BR sso\-mib\-gch\-smtp\-o365 (1)
+.SH AUTHORS
+@PACKAGE_AUTHORS@
+.SH COPYRIGHT
+Copyright (C) 2025 Siemens AG.
+Licensed under GPL-2.0-only.
