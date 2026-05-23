@@ -5,7 +5,7 @@ project(
   'c',
   version : '0.9.0',
   default_options : ['c_std=gnu11', 'warning_level=3'],
-  license : 'GPL-2.0+ OR LGPL-2.1+ OR MIT',
+  license : 'GPL-2.0-only OR LGPL-2.1-only OR MIT',
   license_files : [
     'LICENSES/GPL-2.0-only.txt',
     'LICENSES/LGPL-2.1-only.txt',
