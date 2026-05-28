@@ -20,3 +20,12 @@ example_onedrive = executable(
   link_with : [libsso_mib],
   dependencies: [glibdep, giodep, uuiddep, curldep, jsondep]
 )
+
+example_token_async = executable(
+  'mib-example-token-async',
+  'token-async/main.c',
+  install : false,
+  include_directories : public_headers,
+  link_with : [libsso_mib],
+  dependencies: [glibdep, giodep]
+)
