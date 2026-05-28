@@ -297,22 +297,54 @@ void mib_client_app_set_enforce_interactive(MIBClientApp *self, int enforce)
 	self->enforce_interactive = (char)enforce;
 }
 
-static JsonObject *
-mib_get_linux_broker_version_raw(MIBClientApp *app,
-								 const gchar *msal_cpp_version)
+static gchar *
+linux_broker_version_prepare_request(MIBClientApp *app,
+									 const gchar *msal_cpp_version)
 {
-	GError *error = NULL;
 	JsonObject *params;
 	gchar *params_data;
-	gchar *response;
-	gboolean ok;
 
 	params = json_object_new();
 	json_object_set_string_member(params, "msalCppVersion", msal_cpp_version);
-	debug_print_json_object("mib_get_linux_broker_version_raw", "request",
-							params);
+	debug_print_json_object("mib_get_linux_broker_version", "request", params);
 	params_data = json_object_to_string(params);
 	json_object_unref(params);
+	return params_data;
+}
+
+static gchar *linux_broker_version_process_response(const gchar *response)
+{
+	gchar *version = NULL;
+	JsonObject *version_json = json_object_from_string(response);
+	if (!version_json)
+		goto err;
+	debug_print_json_object("mib_get_linux_broker_version", "response",
+							version_json);
+
+	if (!json_object_has_member(version_json, "linuxBrokerVersion")) {
+		goto err;
+	}
+	version = g_strdup(
+		json_object_get_string_member(version_json, "linuxBrokerVersion"));
+err:
+	if (version_json)
+		json_object_unref(version_json);
+	return version;
+}
+
+gchar *mib_client_app_get_linux_broker_version(MIBClientApp *app,
+											   const gchar *msal_cpp_version)
+{
+	GError *error = NULL;
+	gchar *params_data;
+	gchar *response;
+	gchar *version = NULL;
+	gboolean ok;
+
+	g_assert(app);
+	g_assert(msal_cpp_version);
+
+	params_data = linux_broker_version_prepare_request(app, msal_cpp_version);
 	if (!params_data) {
 		return NULL;
 	}
@@ -327,34 +359,9 @@ mib_get_linux_broker_version_raw(MIBClientApp *app,
 		g_error_free(error);
 		return NULL;
 	}
-	JsonObject *version = json_object_from_string(response);
-	if (!version)
-		goto err;
-	debug_print_json_object("mib_get_linux_broker_version_raw", "response",
-							version);
-err:
+
+	version = linux_broker_version_process_response(response);
 	g_free(response);
-	return version;
-}
-
-gchar *mib_client_app_get_linux_broker_version(MIBClientApp *app,
-											   const gchar *msal_cpp_version)
-{
-	g_assert(app);
-	g_assert(msal_cpp_version);
-
-	JsonObject *version_json = NULL;
-	gchar *version = NULL;
-	version_json = mib_get_linux_broker_version_raw(app, msal_cpp_version);
-	if (!version_json ||
-		!json_object_has_member(version_json, "linuxBrokerVersion")) {
-		goto err;
-	}
-	version = g_strdup(
-		json_object_get_string_member(version_json, "linuxBrokerVersion"));
-err:
-	if (version_json)
-		json_object_unref(version_json);
 	return version;
 }
 
