@@ -56,6 +56,28 @@ struct _MIBClientApp {
 };
 G_DEFINE_TYPE(MIBClientApp, mib_client_app, G_TYPE_OBJECT)
 
+typedef struct {
+	GSList *scopes;
+	enum MIB_PROMPT prompt;
+	gchar *domain_hint;
+	gchar *claims_challenge;
+	MIBPopParams *pop_params;
+	gchar *login_hint;
+	MIBAccount *account;
+} InteractiveAsyncCtx;
+
+static void interactive_async_ctx_free(gpointer data)
+{
+	InteractiveAsyncCtx *ctx = data;
+	g_free(ctx->login_hint);
+	g_free(ctx->domain_hint);
+	g_free(ctx->claims_challenge);
+	g_clear_object(&ctx->pop_params);
+	g_clear_object(&ctx->account);
+	g_slist_free_full(ctx->scopes, g_free);
+	g_free(ctx);
+}
+
 static void mib_client_app_finalize(GObject *gobject)
 {
 	MIBClientApp *priv = MIB_CLIENT_APP(gobject);
@@ -783,6 +805,191 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 err:
 	g_clear_object(&account);
 	return token;
+}
+
+static void acquire_token_interactive_async_cb(GObject *source_object,
+											   GAsyncResult *res,
+											   gpointer user_data)
+{
+	GTask *task = G_TASK(user_data);
+	mibdbusIdentityBroker1 *proxy = MIB_DBUS_IDENTITY_BROKER1(source_object);
+	InteractiveAsyncCtx *ctx = g_task_get_task_data(task);
+	GError *error = NULL;
+	gchar *response = NULL;
+	gboolean ok;
+
+	/* restore default dbus timeout */
+	g_dbus_proxy_set_default_timeout((GDBusProxy *)proxy, -1);
+
+	ok = mib_dbus_identity_broker1_call_acquire_token_interactively_finish(
+		proxy, &response, res, &error);
+	if (!ok) {
+		g_task_return_error(task, error);
+	} else {
+		MIBPrt *token =
+			acquire_token_interactive_process_response(response, ctx->account);
+		g_free(response);
+		if (token) {
+			g_task_return_pointer(task, token, g_object_unref);
+		} else {
+			g_task_return_new_error(
+				task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+				"could not parse interactive token response");
+		}
+	}
+	g_object_unref(task);
+}
+
+static void interactive_async_start_interactive(GTask *task)
+{
+	InteractiveAsyncCtx *ctx = g_task_get_task_data(task);
+	MIBClientApp *app = g_task_get_source_object(task);
+
+	gchar *data = acquire_token_interactive_prepare_request(
+		app, ctx->scopes, ctx->prompt, ctx->account, ctx->domain_hint,
+		ctx->claims_challenge, ctx->pop_params, NULL);
+
+	/* disable dbus timeout as user input is needed */
+	mibdbusIdentityBroker1 *gd_proxy = mib_client_app_get_broker(app);
+	g_dbus_proxy_set_default_timeout((GDBusProxy *)gd_proxy, G_MAXINT);
+
+	mib_dbus_identity_broker1_call_acquire_token_interactively(
+		gd_proxy, MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
+		mib_client_app_get_correlation_id(app), data,
+		mib_client_app_get_cancellable(app), acquire_token_interactive_async_cb,
+		task);
+	g_free(data);
+}
+
+static void interactive_silent_cb(GObject *source_object, GAsyncResult *res,
+								  gpointer user_data)
+{
+	GTask *task = G_TASK(user_data);
+	mibdbusIdentityBroker1 *proxy = MIB_DBUS_IDENTITY_BROKER1(source_object);
+	InteractiveAsyncCtx *ctx = g_task_get_task_data(task);
+	GError *error = NULL;
+	gchar *response = NULL;
+	gboolean ok;
+
+	ok = mib_dbus_identity_broker1_call_acquire_token_silently_finish(
+		proxy, &response, res, &error);
+	if (ok) {
+		JsonObject *token_json = json_object_from_string(response);
+		g_free(response);
+		if (token_json) {
+			debug_print_json_object("mib_acquire_token_silent", "response",
+									token_json);
+			MIBPrt *token = mib_prt_from_json(token_json, ctx->account);
+			json_object_unref(token_json);
+			if (token) {
+				g_task_return_pointer(task, token, g_object_unref);
+				g_object_unref(task);
+				return;
+			}
+		}
+	} else {
+		g_error_free(error);
+	}
+
+	/* Silent failed, fall back to interactive */
+	interactive_async_start_interactive(task);
+}
+
+static void interactive_get_accounts_cb(GObject *source_object,
+										GAsyncResult *res, gpointer user_data)
+{
+	GTask *task = G_TASK(user_data);
+	mibdbusIdentityBroker1 *proxy = MIB_DBUS_IDENTITY_BROKER1(source_object);
+	InteractiveAsyncCtx *ctx = g_task_get_task_data(task);
+	MIBClientApp *app = g_task_get_source_object(task);
+	GError *error = NULL;
+	gchar *response = NULL;
+	gboolean ok;
+
+	ok = mib_dbus_identity_broker1_call_get_accounts_finish(proxy, &response,
+															res, &error);
+	if (!ok) {
+		g_task_return_error(task, error);
+		g_object_unref(task);
+		return;
+	}
+
+	GSList *accounts = get_accounts_process_response(response);
+	g_free(response);
+
+	MIBAccount *account = find_account_by_upn(accounts, ctx->login_hint);
+
+	if (!account) {
+		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+		g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+								"could not find account for login hint");
+		g_object_unref(task);
+		return;
+	}
+
+	ctx->account = account;
+	g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+
+	/* Try silent first (unless enforce_interactive) */
+	if (!mib_client_app_get_enforce_interactive(app)) {
+		gchar *data = acquire_token_silent_prepare_request(
+			app, ctx->account, ctx->scopes, ctx->claims_challenge,
+			ctx->pop_params, NULL);
+
+		mib_dbus_identity_broker1_call_acquire_token_silently(
+			mib_client_app_get_broker(app),
+			MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
+			mib_client_app_get_correlation_id(app), data,
+			mib_client_app_get_cancellable(app), interactive_silent_cb, task);
+		g_free(data);
+		return;
+	}
+
+	/* Go straight to interactive */
+	interactive_async_start_interactive(task);
+}
+
+void mib_client_app_acquire_token_interactive_async(
+	MIBClientApp *app, GSList *scopes, enum MIB_PROMPT prompt,
+	const gchar *login_hint, const gchar *domain_hint,
+	const gchar *claims_challenge, MIBPopParams *pop_params,
+	GAsyncReadyCallback callback, gpointer user_data)
+{
+	GTask *task;
+	InteractiveAsyncCtx *ctx;
+
+	g_assert(app);
+	g_assert(scopes);
+
+	task = g_task_new(app, mib_client_app_get_cancellable(app), callback,
+					  user_data);
+
+	ctx = g_new0(InteractiveAsyncCtx, 1);
+	ctx->scopes = g_slist_copy_deep(scopes, copy_string, NULL);
+	ctx->prompt = prompt;
+	ctx->login_hint = g_strdup(login_hint);
+	ctx->domain_hint = g_strdup(domain_hint);
+	ctx->claims_challenge = g_strdup(claims_challenge);
+	ctx->pop_params = pop_params ? g_object_ref(pop_params) : NULL;
+	g_task_set_task_data(task, ctx, interactive_async_ctx_free);
+
+	/* Step 1: get accounts async */
+	gchar *data = get_accounts_prepare_request(app);
+	mib_dbus_identity_broker1_call_get_accounts(
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
+		mib_client_app_get_correlation_id(app), data,
+		mib_client_app_get_cancellable(app), interactive_get_accounts_cb, task);
+	g_free(data);
+}
+
+MIBPrt *mib_client_app_acquire_token_interactive_finish(MIBClientApp *app,
+														GAsyncResult *result,
+														GError **error)
+{
+	g_assert(app);
+	g_assert(g_task_is_valid(result, app));
+
+	return g_task_propagate_pointer(G_TASK(result), error);
 }
 
 static gchar *acquire_prt_sso_cookie_request_prepare(MIBClientApp *app,

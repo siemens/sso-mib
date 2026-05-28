@@ -77,6 +77,11 @@ JsonArray *mib_scopes_to_json(GSList *scopes)
 	return scopes_array;
 }
 
+gpointer copy_string(gconstpointer src, MIB_ARG_UNUSED gpointer data)
+{
+	return g_strdup((const gchar *)src);
+}
+
 MIBAccount *find_account_by_upn(GSList *accounts, const gchar *upn)
 {
 	for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
