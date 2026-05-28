@@ -23,6 +23,11 @@ void debug_print_json_object(const gchar *func, const gchar *scope,
 JsonArray *mib_scopes_to_json(GSList *scopes);
 
 /**
+ * Helper to deep copy strings in a GSList.
+ */
+gpointer copy_string(gconstpointer src, MIB_ARG_UNUSED gpointer data);
+
+/**
  * Find an account matching @upn in a list.
  * Returns a new reference or NULL.
  */

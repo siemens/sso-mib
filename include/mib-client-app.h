@@ -303,6 +303,47 @@ PUBLIC_API MIBPrt *mib_client_app_acquire_token_interactive(
 	const gchar *claims_challenge, MIBPopParams *auth_scheme);
 
 /**
+ * \brief Acquire a token with user interaction (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_acquire_token_interactive.
+ * Internally, a silent token acquire is attempted first (unless
+ * \ref mib_client_app_set_enforce_interactive is set). If that fails,
+ * the interactive acquire is performed.
+ *
+ * \dbusacall{acquireTokenInteractively}
+ * \dbusacall{getAccounts}
+ * \dbusacall{acquireTokenSilently} (if interactive is not enforced)
+ *
+ * \param app client app object
+ * \param scopes list of scopes (\c gchar* entries)
+ * \param prompt what the user should be asked
+ * \param login_hint Identifier of the user. Generally a User Principal Name (UPN) (or NULL)
+ * \param domain_hint Not Implemented (yet). Set to NULL
+ * \param claims_challenge claims challenge or NULL
+ * \param auth_scheme PoP parameters or NULL
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void mib_client_app_acquire_token_interactive_async(
+	MIBClientApp *app, GSList *scopes, enum MIB_PROMPT prompt,
+	const gchar *login_hint, const gchar *domain_hint,
+	const gchar *claims_challenge, MIBPopParams *auth_scheme,
+	GAsyncReadyCallback callback, gpointer user_data);
+
+/**
+ * \brief Finish an async interactive token acquisition
+ *
+ * The user is responsible for freeing the object with \c g_object_unref .
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return PRT token struct or NULL on error
+ */
+PUBLIC_API MIBPrt *mib_client_app_acquire_token_interactive_finish(
+	MIBClientApp *app, GAsyncResult *result, GError **error);
+
+/**
  * \brief Acquire a PRT SSO cookie
  *
  * This function acquires a PRT SSO cookie for the given account, SSO URL and
