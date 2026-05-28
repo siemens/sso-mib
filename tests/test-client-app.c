@@ -330,6 +330,97 @@ static void test_acquire_token_silent_async(void)
 	g_object_unref(app);
 }
 
+/* --- Test: acquire token interactive async --- */
+
+static void acquire_token_interactive_async_cb(GObject *source_object,
+											   GAsyncResult *res,
+											   gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+	MIBClientApp *app = MIB_CLIENT_APP(source_object);
+	GError *error = NULL;
+
+	MIBPrt *token =
+		mib_client_app_acquire_token_interactive_finish(app, res, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(token);
+
+	g_assert_cmpstr(mib_prt_get_access_token(token), ==,
+					"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.test");
+
+	g_object_unref(token);
+	g_main_loop_quit(loop);
+}
+
+static void test_acquire_token_interactive_async(void)
+{
+	GError *error = NULL;
+	mock_broker_set_get_accounts_response(broker, GET_ACCOUNTS_RESPONSE);
+	mock_broker_set_acquire_token_silently_response(broker, TOKEN_RESPONSE);
+
+	MIBClientApp *app = mib_public_client_app_new(
+		TEST_CLIENT_ID, MIB_AUTHORITY_COMMON, NULL, &error);
+	g_assert_no_error(error);
+
+	GSList *scopes = g_slist_append(NULL, (gpointer)MIB_SCOPE_GRAPH_DEFAULT);
+
+	GMainLoop *loop = g_main_loop_new(NULL, FALSE);
+	mib_client_app_acquire_token_interactive_async(
+		app, scopes, MIB_PROMPT_UNSET, "testuser@example.com", NULL, NULL, NULL,
+		acquire_token_interactive_async_cb, loop);
+	g_main_loop_run(loop);
+
+	g_main_loop_unref(loop);
+	g_slist_free(scopes);
+	g_object_unref(app);
+}
+
+static void acquire_token_interactive_enforce_async_cb(GObject *source_object,
+													   GAsyncResult *res,
+													   gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+	MIBClientApp *app = MIB_CLIENT_APP(source_object);
+	GError *error = NULL;
+
+	MIBPrt *token =
+		mib_client_app_acquire_token_interactive_finish(app, res, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(token);
+
+	g_assert_cmpstr(mib_prt_get_access_token(token), ==,
+					"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.test");
+
+	g_object_unref(token);
+	g_main_loop_quit(loop);
+}
+
+static void test_acquire_token_interactive_async_enforce(void)
+{
+	GError *error = NULL;
+	mock_broker_set_get_accounts_response(broker, GET_ACCOUNTS_RESPONSE);
+	mock_broker_set_acquire_token_interactively_response(broker,
+														 TOKEN_RESPONSE);
+
+	MIBClientApp *app = mib_public_client_app_new(
+		TEST_CLIENT_ID, MIB_AUTHORITY_COMMON, NULL, &error);
+	g_assert_no_error(error);
+
+	mib_client_app_set_enforce_interactive(app, 1);
+
+	GSList *scopes = g_slist_append(NULL, (gpointer)MIB_SCOPE_GRAPH_DEFAULT);
+
+	GMainLoop *loop = g_main_loop_new(NULL, FALSE);
+	mib_client_app_acquire_token_interactive_async(
+		app, scopes, MIB_PROMPT_UNSET, "testuser@example.com", NULL, NULL, NULL,
+		acquire_token_interactive_enforce_async_cb, loop);
+	g_main_loop_run(loop);
+
+	g_main_loop_unref(loop);
+	g_slist_free(scopes);
+	g_object_unref(app);
+}
+
 /* --- Test: acquire PRT SSO cookie --- */
 
 static void test_acquire_prt_sso_cookie(void)
@@ -677,6 +768,10 @@ int main(int argc, char *argv[])
 					test_acquire_token_silent_bad_response);
 	g_test_add_func("/client-app/acquire-token-silent-async",
 					test_acquire_token_silent_async);
+	g_test_add_func("/client-app/acquire-token-interactive-async",
+					test_acquire_token_interactive_async);
+	g_test_add_func("/client-app/acquire-token-interactive-async-enforce",
+					test_acquire_token_interactive_async_enforce);
 	g_test_add_func("/client-app/acquire-prt-sso-cookie",
 					test_acquire_prt_sso_cookie);
 	g_test_add_func("/client-app/acquire-prt-sso-cookie-async",
