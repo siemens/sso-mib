@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-only
  */
 
+#include "mib-account-impl.h"
 #include "mib-utils.h"
 
 gchar *json_object_to_string(JsonObject *object)
@@ -74,4 +75,20 @@ JsonArray *mib_scopes_to_json(GSList *scopes)
 		json_array_add_string_element(scopes_array, iter->data);
 	}
 	return scopes_array;
+}
+
+MIBAccount *find_account_by_upn(GSList *accounts, const gchar *upn)
+{
+	for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
+		MIBAccount *account = (MIBAccount *)iter->data;
+		if (!upn) {
+			g_debug("no upn provided");
+			return g_object_ref(account);
+		}
+		if (g_strcmp0(mib_account_get_username(account), upn) == 0) {
+			g_debug("account matching UPN found");
+			return g_object_ref(account);
+		}
+	}
+	return NULL;
 }

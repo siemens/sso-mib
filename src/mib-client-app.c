@@ -222,25 +222,11 @@ MIBAccount *mib_client_app_get_account_by_upn(MIBClientApp *app,
 											  const gchar *upn)
 {
 	GSList *accounts = mib_client_app_get_accounts(app);
-	MIBAccount *account = NULL;
+	MIBAccount *account;
 
 	g_assert(app);
 
-	for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
-		account = (MIBAccount *)iter->data;
-		if (!upn) {
-			g_debug("no upn provided");
-			break;
-		}
-		if (g_strcmp0(mib_account_get_username(account), upn) == 0) {
-			g_debug("account matching UPN found");
-			break;
-		}
-		account = NULL;
-	}
-	if (account) {
-		g_object_ref(account);
-	}
+	account = find_account_by_upn(accounts, upn);
 	g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 	return account;
 }
