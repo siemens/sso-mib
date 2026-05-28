@@ -25,7 +25,7 @@
  *  @{
  */
 
- /**
+/**
  * \brief Common authority for all tenants
  */
 #define MIB_AUTHORITY_COMMON "https://login.microsoftonline.com/common"
@@ -110,8 +110,8 @@ mib_client_app_get_broker_redirect_uri(const MIBClientApp *self);
  * \note The redirect URI must be in the list of allowed redirect URIs for
  *       the target application. Otherwise, the token acquisition will not work.
  */
-PUBLIC_API void
-mib_client_app_set_redirect_uri(MIBClientApp* self, const gchar* uri);
+PUBLIC_API void mib_client_app_set_redirect_uri(MIBClientApp *self,
+												const gchar *uri);
 
 /**
  * \brief Get the version of the Linux broker
