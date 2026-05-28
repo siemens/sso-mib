@@ -66,6 +66,18 @@ jobs:
           meson setup -Ddocumentation=True -Dexamples=True build
           cd build && ninja
 
+      - name: test with address sanitizer
+        run: |
+          meson setup -Db_sanitize=address -Ddocumentation=false -Dexamples=false build-asan
+          ninja -C build-asan
+          meson test -C build-asan
+
+      - name: test with undefined behavior sanitizer
+        run: |
+          meson setup -Db_sanitize=undefined -Ddocumentation=false -Dexamples=false build-ubsan
+          ninja -C build-ubsan
+          meson test -C build-ubsan
+
       - name: upload API docs
         uses: actions/upload-pages-artifact@v5
         id: deployment
