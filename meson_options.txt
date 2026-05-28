@@ -8,6 +8,10 @@ option('examples',
        type: 'boolean',
        value: false,
        description: 'Build the examples [default=false]')
+option('tests',
+       type: 'boolean',
+       value: true,
+       description: 'Build the tests [default=true]')
 option('libjwt',
        description: 'Enable code that depends on libjwt',
        type: 'feature',
