@@ -53,6 +53,7 @@ enum MIB_PROMPT {
 #ifndef DOXYGEN
 #define MIB_TYPE_CLIENT_APP mib_client_app_get_type()
 G_DECLARE_FINAL_TYPE(MIBClientApp, mib_client_app, MIB, CLIENT_APP, GObject)
+PUBLIC_API GType mib_client_app_get_type(void);
 #else
 typedef void *MIBClientApp;
 #endif

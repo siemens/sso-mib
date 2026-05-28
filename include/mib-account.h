@@ -26,6 +26,7 @@ G_BEGIN_DECLS
 #ifndef DOXYGEN
 #define MIB_TYPE_ACCOUNT mib_account_get_type()
 G_DECLARE_FINAL_TYPE(MIBAccount, mib_account, MIB, ACCOUNT, GObject)
+PUBLIC_API GType mib_account_get_type(void);
 #else
 typedef void* MIBAccount;
 #endif

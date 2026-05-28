@@ -26,6 +26,7 @@ G_BEGIN_DECLS
 #ifndef DOXYGEN
 #define MIB_TYPE_PRT mib_prt_get_type()
 G_DECLARE_FINAL_TYPE(MIBPrt, mib_prt, MIB, PRT, GObject)
+PUBLIC_API GType mib_prt_get_type(void);
 #else
 typedef void* MIBPrt;
 #endif

@@ -27,6 +27,7 @@ G_BEGIN_DECLS
 #define MIB_TYPE_PRT_SSO_COOKIE mib_prt_sso_cookie_get_type()
 G_DECLARE_FINAL_TYPE(MIBPrtSsoCookie, mib_prt_sso_cookie, MIB, PRT_SSO_COOKIE,
 					 GObject)
+PUBLIC_API GType mib_prt_sso_cookie_get_type(void);
 #else
 typedef void* MIBPrtSsoCookie;
 #endif

@@ -40,6 +40,7 @@ enum MIB_REQUEST_METHOD {
 #ifndef DOXYGEN
 #define MIB_TYPE_POP_PARAMS mib_pop_params_get_type()
 G_DECLARE_FINAL_TYPE(MIBPopParams, mib_pop_params, MIB, POP_PARAMS, GObject)
+PUBLIC_API GType mib_pop_params_get_type(void);
 #else
 typedef void* MIBPopParams;
 #endif
