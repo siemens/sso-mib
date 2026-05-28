@@ -30,3 +30,4 @@ PREDEFINED             = PUBLIC_API= DOXYGEN=1 G_BEGIN_DECLS G_END_DECLS
 EXCLUDE_SYMBOLS        = PUBLIC_API _SSO_MIB_INSIDE_ G_BEGIN_DECLS G_END_DECLS
 STRIP_FROM_PATH        = "@apisrcdir@"
 ALIASES               += dbuscall{1}="\note Synchronous DBus call to \c \1"
+ALIASES               += dbusacall{1}="\note Asynchronous DBus call to \c \1"
