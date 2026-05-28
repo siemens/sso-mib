@@ -127,6 +127,33 @@ mib_client_app_get_linux_broker_version(MIBClientApp *app,
 										const gchar *msal_cpp_version);
 
 /**
+ * \brief Get the version of the Linux broker (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_get_linux_broker_version.
+ *
+ * \dbusacall{getLinuxBrokerVersion}
+ *
+ * \param app client app object
+ * \param msal_cpp_version MSAL CPP version (non-empty string, e.g. 1.28.0)
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void mib_client_app_get_linux_broker_version_async(
+	MIBClientApp *app, const gchar *msal_cpp_version,
+	GAsyncReadyCallback callback, gpointer user_data);
+
+/**
+ * \brief Finish an async get Linux broker version operation
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return broker version (or null on error, must be freed with g_free())
+ */
+PUBLIC_API gchar *mib_client_app_get_linux_broker_version_finish(
+	MIBClientApp *app, GAsyncResult *result, GError **error);
+
+/**
  * \brief Get the accounts associated with the session
  *
  * Returns a list of \ref MIBAccount entries associated with the application.
@@ -141,6 +168,41 @@ mib_client_app_get_linux_broker_version(MIBClientApp *app,
  * \return list of \ref MIBAccount*
  */
 PUBLIC_API GSList *mib_client_app_get_accounts(MIBClientApp *app);
+
+/**
+ * \brief Get the accounts associated with the session (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_get_accounts.
+ * When the operation is finished, \p callback will be called.
+ * You can then call \ref mib_client_app_get_accounts_finish to get
+ * the result.
+ *
+ * \dbusacall{getAccounts}
+ *
+ * \param app client app object
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void mib_client_app_get_accounts_async(MIBClientApp *app,
+												  GAsyncReadyCallback callback,
+												  gpointer user_data);
+
+/**
+ * \brief Finish an async get accounts operation
+ *
+ * Finishes an operation started with \ref mib_client_app_get_accounts_async.
+ *
+ * The user is responsible for freeing the list, e.g. with
+ * \c g_slist_free_full(accounts,(GDestroyNotify)g_object_unref)
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return list of \ref MIBAccount* or NULL on error
+ */
+PUBLIC_API GSList *mib_client_app_get_accounts_finish(MIBClientApp *app,
+													  GAsyncResult *result,
+													  GError **error);
 
 /**
  * \brief Filter the registered accounts by UPN and return the first match
@@ -180,6 +242,40 @@ PUBLIC_API MIBPrt *mib_client_app_acquire_token_silent(
 	MIBClientApp *app, MIBAccount *account, GSList *scopes,
 	const gchar *claims_challenge, MIBPopParams *auth_scheme,
 	const gchar *id_token);
+
+/**
+ * \brief Acquire a token without user interaction (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_acquire_token_silent.
+ *
+ * \dbusacall{acquireTokenSilently}
+ *
+ * \param app client app object
+ * \param account mib account reference
+ * \param scopes list of scopes (\c gchar* entries)
+ * \param claims_challenge claims challenge or NULL
+ * \param auth_scheme PoP parameters or NULL
+ * \param id_token ID token or NULL
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void mib_client_app_acquire_token_silent_async(
+	MIBClientApp *app, MIBAccount *account, GSList *scopes,
+	const gchar *claims_challenge, MIBPopParams *auth_scheme,
+	const gchar *id_token, GAsyncReadyCallback callback, gpointer user_data);
+
+/**
+ * \brief Finish an async silent token acquisition
+ *
+ * The user is responsible for freeing the object with \c g_object_unref .
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return PRT token struct or NULL on error
+ */
+PUBLIC_API MIBPrt *mib_client_app_acquire_token_silent_finish(
+	MIBClientApp *app, GAsyncResult *result, GError **error);
 
 /**
  * \brief Acquire a token without with user interaction (if needed)
@@ -227,6 +323,37 @@ mib_client_app_acquire_prt_sso_cookie(MIBClientApp *app, MIBAccount *account,
 									  const gchar *sso_url, GSList *scopes);
 
 /**
+ * \brief Acquire a PRT SSO cookie (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_acquire_prt_sso_cookie.
+ *
+ * \dbusacall{acquirePrtSsoCookie}
+ *
+ * \param app client app object
+ * \param account mib account reference
+ * \param sso_url SSO URL
+ * \param scopes list of scopes
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void mib_client_app_acquire_prt_sso_cookie_async(
+	MIBClientApp *app, MIBAccount *account, const gchar *sso_url,
+	GSList *scopes, GAsyncReadyCallback callback, gpointer user_data);
+
+/**
+ * \brief Finish an async PRT SSO cookie acquisition
+ *
+ * The user is responsible for freeing the object with \c g_object_unref .
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return PRT SSO cookie struct or NULL on error
+ */
+PUBLIC_API MIBPrtSsoCookie *mib_client_app_acquire_prt_sso_cookie_finish(
+	MIBClientApp *app, GAsyncResult *result, GError **error);
+
+/**
  * \brief Generate a signed HTTP request
  *
  * This function implements the Acquiring Access Tokens Protected with
@@ -245,6 +372,36 @@ PUBLIC_API gchar *mib_client_app_generate_signed_http_request(
 	MIBClientApp *app, MIBAccount *account, MIBPopParams *pop_params);
 
 /**
+ * \brief Generate a signed HTTP request (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_generate_signed_http_request.
+ *
+ * \dbusacall{generateSignedHttpRequest}
+ *
+ * \param app client app object
+ * \param account mib account reference
+ * \param pop_params PoP parameters
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void mib_client_app_generate_signed_http_request_async(
+	MIBClientApp *app, MIBAccount *account, MIBPopParams *pop_params,
+	GAsyncReadyCallback callback, gpointer user_data);
+
+/**
+ * \brief Finish an async signed HTTP request generation
+ *
+ * The user is responsible for freeing the string with \c g_free .
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return access token (must be freed with g_free()) or NULL on error
+ */
+PUBLIC_API gchar *mib_client_app_generate_signed_http_request_finish(
+	MIBClientApp *app, GAsyncResult *result, GError **error);
+
+/**
  * \brief Signout the account and clear linked token cache
  *
  * \dbuscall{removeAccount}
@@ -255,6 +412,35 @@ PUBLIC_API gchar *mib_client_app_generate_signed_http_request(
  */
 PUBLIC_API int mib_client_app_remove_account(MIBClientApp *app,
 											 MIBAccount *account);
+
+/**
+ * \brief Signout the account and clear linked token cache (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_remove_account.
+ *
+ * \dbusacall{removeAccount}
+ *
+ * \param app client app object
+ * \param account mib account reference
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void
+mib_client_app_remove_account_async(MIBClientApp *app, MIBAccount *account,
+									GAsyncReadyCallback callback,
+									gpointer user_data);
+
+/**
+ * \brief Finish an async remove account operation
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return 0 on success, -1 on error
+ */
+PUBLIC_API int mib_client_app_remove_account_finish(MIBClientApp *app,
+													GAsyncResult *result,
+													GError **error);
 
 G_END_DECLS
 
