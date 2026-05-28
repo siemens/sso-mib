@@ -136,13 +136,10 @@ static gchar *mib_prompt_to_str(enum MIB_PROMPT prompt)
 	}
 }
 
-static JsonObject *mib_client_app_get_accounts_raw(MIBClientApp *app)
+static gchar *get_accounts_prepare_request(MIBClientApp *app)
 {
-	GError *error = NULL;
-	gchar *response = NULL;
 	JsonBuilder *builder;
 	JsonNode *root;
-	gboolean ok;
 
 	builder = json_builder_new();
 	json_builder_begin_object(builder);
@@ -154,89 +151,32 @@ static JsonObject *mib_client_app_get_accounts_raw(MIBClientApp *app)
 	root = json_builder_get_root(builder);
 	g_object_unref(builder);
 	JsonObject *params = json_node_get_object(root);
-	debug_print_json_object("mib_client_app_get_accounts_raw", "request",
-							params);
+	debug_print_json_object("mib_client_app_get_accounts", "request", params);
 	gchar *data = json_object_to_string(params);
 	json_node_unref(root);
+	return data;
+}
 
-	ok = mib_dbus_identity_broker1_call_get_accounts_sync(
-		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
-		mib_client_app_get_correlation_id(app), data, &response,
-		mib_client_app_get_cancellable(app), &error);
-	g_free(data);
-	if (!ok) {
-		g_warning("could not get accounts: %s", error->message);
-		g_error_free(error);
-		return NULL;
-	}
+static GSList *get_accounts_process_response(const gchar *response)
+{
+	JsonArray *accounts_array = NULL;
+	GSList *accounts_list = NULL;
+	MIBAccount *mib_account = NULL;
+
 	JsonObject *accounts = json_object_from_string(response);
-	g_free(response);
 	if (!accounts) {
 		g_warning("could not parse accounts response");
 		return NULL;
 	}
-	debug_print_json_object("mib_client_app_get_accounts_raw", "response",
+	debug_print_json_object("mib_client_app_get_accounts", "response",
 							accounts);
-	return accounts;
-}
 
-/**
- * If no upn is provided, return the first account.
- * On error or when the no account has a matching upn return null.
- */
-static JsonObject *mib_client_app_get_account_by_upn_raw(MIBClientApp *app,
-														 const gchar *upn)
-{
-	JsonObject *accounts = mib_client_app_get_accounts_raw(app);
-	JsonObject *account = NULL;
-	if (!accounts) {
-		return NULL;
-	}
-	JsonArray *accounts_array =
-		json_object_get_array_member(accounts, "accounts");
-	if (!accounts_array) {
-		goto err;
-	}
-	for (guint i = 0; i < json_array_get_length(accounts_array); i++) {
-		JsonObject *_account = json_array_get_object_element(accounts_array, i);
-		if (!upn) {
-			g_debug("no upn provided");
-			account = _account;
-			break;
-		}
-		if (!json_object_has_member(_account, "username"))
-			continue;
-		const gchar *username =
-			json_object_get_string_member(_account, "username");
-		if (g_strcmp0(username, upn) == 0) {
-			g_debug("account matching UPN found");
-			account = _account;
-			break;
-		}
-	}
-	if (account)
-		json_object_ref(account);
-err:
-	json_object_unref(accounts);
-	return account;
-}
-
-GSList *mib_client_app_get_accounts(MIBClientApp *self)
-{
-	g_assert(self);
-
-	JsonObject *accounts = mib_client_app_get_accounts_raw(self);
-	if (!accounts) {
-		return NULL;
-	}
 	if (!json_object_has_member(accounts, "accounts")) {
 		json_object_unref(accounts);
 		return NULL;
 	}
-	JsonArray *accounts_array =
-		json_object_get_array_member(accounts, "accounts");
-	GSList *accounts_list = NULL;
-	MIBAccount *mib_account = NULL;
+
+	accounts_array = json_object_get_array_member(accounts, "accounts");
 	for (guint i = 0; i < json_array_get_length(accounts_array); i++) {
 		JsonObject *account = json_array_get_object_element(accounts_array, i);
 		mib_account = mib_account_from_json(account);
@@ -250,19 +190,59 @@ GSList *mib_client_app_get_accounts(MIBClientApp *self)
 	return g_slist_reverse(accounts_list);
 }
 
+GSList *mib_client_app_get_accounts(MIBClientApp *app)
+{
+	GError *error = NULL;
+	gchar *response = NULL;
+	gchar *data = NULL;
+	GSList *accounts = NULL;
+	gboolean ok;
+
+	g_assert(app);
+
+	data = get_accounts_prepare_request(app);
+
+	ok = mib_dbus_identity_broker1_call_get_accounts_sync(
+		mib_client_app_get_broker(app), MIB_REQUIRED_BROKER_PROTOCOL_VERSION,
+		mib_client_app_get_correlation_id(app), data, &response,
+		mib_client_app_get_cancellable(app), &error);
+	g_free(data);
+	if (!ok) {
+		g_warning("could not get accounts: %s", error->message);
+		g_error_free(error);
+		return NULL;
+	}
+
+	accounts = get_accounts_process_response(response);
+	g_free(response);
+	return accounts;
+}
+
 MIBAccount *mib_client_app_get_account_by_upn(MIBClientApp *app,
 											  const gchar *upn)
 {
+	GSList *accounts = mib_client_app_get_accounts(app);
+	MIBAccount *account = NULL;
+
 	g_assert(app);
 
-	MIBAccount *mib_account = NULL;
-	JsonObject *account = mib_client_app_get_account_by_upn_raw(app, upn);
-	if (!account) {
-		return NULL;
+	for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
+		account = (MIBAccount *)iter->data;
+		if (!upn) {
+			g_debug("no upn provided");
+			break;
+		}
+		if (g_strcmp0(mib_account_get_username(account), upn) == 0) {
+			g_debug("account matching UPN found");
+			break;
+		}
+		account = NULL;
 	}
-	mib_account = mib_account_from_json(account);
-	json_object_unref(account);
-	return mib_account;
+	if (account) {
+		g_object_ref(account);
+	}
+	g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+	return account;
 }
 
 mibdbusIdentityBroker1 *mib_client_app_get_broker(MIBClientApp *self)
@@ -601,12 +581,13 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 
 	MIBPrt *token = NULL;
 	JsonObject *token_json = NULL;
-	JsonObject *account_json =
-		mib_client_app_get_account_by_upn_raw(app, login_hint);
-	if (!account_json) {
+	JsonObject *account_json = NULL;
+	MIBAccount *fallback_account =
+		mib_client_app_get_account_by_upn(app, login_hint);
+	if (!fallback_account) {
 		return NULL;
 	}
-	MIBAccount *fallback_account = mib_account_from_json(account_json);
+	account_json = mib_account_to_json(fallback_account);
 
 	JsonArray *scopes_array = mib_scopes_to_json(scopes);
 	JsonObject *pop_params = auth_scheme ? mib_pop_params_to_json(auth_scheme) :
