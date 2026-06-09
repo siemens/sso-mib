@@ -68,7 +68,7 @@ $ sso-mib-tool acquireTokenInteractive -f json \
     -s <client_id> \
     -r https://login.microsoftonline.com/common/oauth2/nativeclient \
     -x <authority> \
-    -S offline_access -S 'https://outlook.office365.com/SMTP.Send'
+    -S 'https://outlook.office365.com/SMTP.Send'
 ```
 
 ## Maintainers
