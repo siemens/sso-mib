@@ -133,13 +133,15 @@ configure_file(input : 'man/sso-mib-tool.1.in',
                output : 'sso-mib-tool.1',
                configuration : man_config,
                install : true,
-               install_dir : join_paths(get_option('mandir'), 'man1'))
+               install_dir : join_paths(get_option('mandir'), 'man1'),
+               install_tag : 'tool')
 
 configure_file(input : 'man/sso-mib-gch-smtp-o365.1.in',
                output : 'sso-mib-gch-smtp-o365.1',
                configuration : man_config,
                install : true,
-               install_dir : join_paths(get_option('mandir'), 'man1'))
+               install_dir : join_paths(get_option('mandir'), 'man1'),
+               install_tag : 'git-cred-helper')
 
 if get_option('documentation')
   subdir('docs')
