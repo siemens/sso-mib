@@ -64,6 +64,12 @@ typedef void *MIBClientApp;
  * This function creates a new session for the given client_id.
  * The user is responsible for freeing the object with \c g_object_unref .
  *
+ * Since version \c 0.10.1 , this function no longer triggers a DBus
+ * activation of the broker service. Instead, the service is activated
+ * on demand by the individual method calls. As a result, a
+ * \c MIBClientApp object can be long-lived and remains valid across
+ * broker restarts.
+ *
  * \param client_id Azure client application ID
  * \param authority Azure authority URL (e.g. value from MIB_AUTHORITY_COMMON)
  * \param cancellable Cancellable object or NULL
