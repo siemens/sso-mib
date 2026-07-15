@@ -130,7 +130,8 @@ MIBClientApp *mib_public_client_app_new(const gchar *client_id,
 	}
 
 	self->broker = mib_dbus_identity_broker1_proxy_new_for_bus_sync(
-		G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, DBUS_BROKER_NAME,
+		G_BUS_TYPE_SESSION,
+		G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START_AT_CONSTRUCTION, DBUS_BROKER_NAME,
 		DBUS_BROKER_PATH, self->cancellable, error);
 
 	if (!self->broker) {
