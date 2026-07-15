@@ -127,6 +127,7 @@ endif
 if get_option('tools')
   subdir('tools')
   alias_target('sso-mib-gch-smtp-o365', gch_smtp_office365)
+  alias_target('linux-entra-sso', linux_entra_sso)
   alias_target('sso-mib-tool', sso_mib_tool)
 endif
 
