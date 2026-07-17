@@ -1,0 +1,71 @@
+.\" SPDX-FileCopyrightText: (C) 2026 Siemens AG
+.\" SPDX-License-Identifier: MIT
+.TH SSO\-MIB\-LINUX\-ENTRA\-SSO 1 "2026" "@PACKAGE_NAME@ @PACKAGE_VERSION@" "User Commands"
+.SH NAME
+linux\-entra\-sso \- native messaging host for the linux-entra-sso webextension
+.SH SYNOPSIS
+.B linux\-entra\-sso
+.SH DESCRIPTION
+.B linux\-entra\-sso
+reimplements the native messaging host of the
+.I linux-entra-sso
+webextension on top of the sso-mib library.
+.PP
+It speaks the WebExtension native messaging protocol on standard input and
+standard output, exchanging length-prefixed JSON messages with the browser
+extension. Each request is wrapped in a
+.RI { command , " message" }
+envelope; responses use the same framing.
+.PP
+The host acquires tokens and cookies from the Microsoft Identity Broker via
+DBus and monitors the broker's availability, emitting
+.B brokerStateChanged
+notifications when the broker appears or vanishes.
+.PP
+This implementation is intended for experimental purposes, but should be
+functionally equivalent to the original host. It can therefore be used as a
+drop-in replacement for the native messaging host shipped with the
+.I linux-entra-sso
+webextension.
+.SH COMMANDS
+The following commands are accepted in the native messaging
+.B command
+field:
+.TP
+.B getAccounts
+Return the list of accounts known to the broker.
+.TP
+.B acquireTokenSilently
+Acquire an access token for the account and scopes given in the request. When
+no scopes are supplied, the Microsoft Graph default scope is used.
+.TP
+.B acquirePrtSsoCookie
+Acquire a PRT SSO cookie for the requested account, SSO URL and scopes.
+.TP
+.B getVersion
+Return the broker version and the native host version.
+.SH ENVIRONMENT
+.TP
+.B G_MESSAGES_DEBUG=ssomib
+Enable debug logging of DBus call parameters via GLib's message logging system.
+.SH USAGE
+.B linux\-entra\-sso
+is not meant to be run interactively. It is launched by the browser through a
+native messaging host manifest that points to the installed executable. Refer
+to the
+.I linux-entra-sso
+browser extension documentation for how to register the native messaging host.
+.SH EXIT STATUS
+.TP
+.B 0
+The host terminated normally (e.g., standard input was closed).
+.TP
+.B 1
+An error occurred (e.g., the client application could not be created).
+.SH SEE ALSO
+.BR sso\-mib\-tool (1)
+.SH AUTHORS
+@PACKAGE_AUTHORS@
+.SH COPYRIGHT
+Copyright (C) 2026 Siemens AG.
+Licensed under MIT.

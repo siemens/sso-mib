@@ -120,6 +120,13 @@ configure_file(input : 'man/sso-mib-gch-smtp-o365.1.in',
                install_dir : join_paths(get_option('mandir'), 'man1'),
                install_tag : 'git-cred-helper')
 
+configure_file(input : 'man/sso-mib-linux-entra-sso.1.in',
+               output : 'sso-mib-linux-entra-sso.1',
+               configuration : man_config,
+               install : true,
+               install_dir : join_paths(get_option('mandir'), 'man1'),
+               install_tag : 'linux-entra-sso')
+
 if get_option('documentation')
   subdir('docs')
 endif
