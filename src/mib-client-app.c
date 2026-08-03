@@ -304,6 +304,57 @@ MIBAccount *mib_client_app_get_account_by_upn(MIBClientApp *app,
 	return account;
 }
 
+static void get_account_by_upn_async_cb(GObject *source_object,
+										GAsyncResult *res, gpointer user_data)
+{
+	GTask *task = G_TASK(user_data);
+	MIBClientApp *app = MIB_CLIENT_APP(source_object);
+	const gchar *upn = g_task_get_task_data(task);
+	GError *error = NULL;
+	GSList *accounts;
+
+	accounts = mib_client_app_get_accounts_finish(app, res, &error);
+	if (error) {
+		g_task_return_error(task, error);
+	} else {
+		MIBAccount *account = find_account_by_upn(accounts, upn);
+		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+		if (account) {
+			g_task_return_pointer(task, account, g_object_unref);
+		} else {
+			g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+									"no account matching the UPN was found");
+		}
+	}
+	g_object_unref(task);
+}
+
+void mib_client_app_get_account_by_upn_async(MIBClientApp *app,
+											 const gchar *upn,
+											 GAsyncReadyCallback callback,
+											 gpointer user_data)
+{
+	GTask *task;
+
+	g_assert(app);
+
+	task = g_task_new(app, mib_client_app_get_cancellable(app), callback,
+					  user_data);
+	g_task_set_task_data(task, g_strdup(upn), g_free);
+
+	mib_client_app_get_accounts_async(app, get_account_by_upn_async_cb, task);
+}
+
+MIBAccount *mib_client_app_get_account_by_upn_finish(MIBClientApp *app,
+													 GAsyncResult *result,
+													 GError **error)
+{
+	g_assert(app);
+	g_assert(g_task_is_valid(result, app));
+
+	return g_task_propagate_pointer(G_TASK(result), error);
+}
+
 mibdbusIdentityBroker1 *mib_client_app_get_broker(MIBClientApp *self)
 {
 	g_assert(self);
