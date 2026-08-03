@@ -227,6 +227,46 @@ PUBLIC_API MIBAccount *mib_client_app_get_account_by_upn(MIBClientApp *app,
 														 const gchar *upn);
 
 /**
+ * \brief Filter the registered accounts by UPN and return the first match (async)
+ *
+ * Asynchronous variant of \ref mib_client_app_get_account_by_upn.
+ * When the operation is finished, \p callback will be called.
+ * You can then call \ref mib_client_app_get_account_by_upn_finish to get
+ * the result.
+ *
+ * \dbusacall{getAccounts}
+ *
+ * \param app client app object
+ * \param upn User Principal Name (or NULL to select the first account)
+ * \param callback a GAsyncReadyCallback to call when the request is done
+ * \param user_data user data to pass to the callback
+ */
+PUBLIC_API void
+mib_client_app_get_account_by_upn_async(MIBClientApp *app, const gchar *upn,
+										GAsyncReadyCallback callback,
+										gpointer user_data);
+
+/**
+ * \brief Finish an async get account by UPN operation
+ *
+ * Finishes an operation started with
+ * \ref mib_client_app_get_account_by_upn_async.
+ *
+ * The user is responsible for freeing the object with \c g_object_unref .
+ *
+ * If no account matches the requested UPN, the operation fails with
+ * \c G_IO_ERROR_NOT_FOUND .
+ *
+ * \param app client app object
+ * \param result the GAsyncResult passed to the callback
+ * \param error return location for a GError or NULL
+ * \return matching account or NULL on error
+ */
+PUBLIC_API MIBAccount *
+mib_client_app_get_account_by_upn_finish(MIBClientApp *app,
+										 GAsyncResult *result, GError **error);
+
+/**
  * \brief Acquire a token without user interaction
  *
  * This function acquires a token for the given account and requested scopes.
