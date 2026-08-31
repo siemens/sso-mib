@@ -101,19 +101,6 @@ if jwtdep.found()
   ]
 endif
 
-sso_mib_tool = executable(
-  'sso-mib-tool',
-  [
-    'src/sso-mib-tool.c',
-  ],
-  install : true,
-  include_directories : public_headers,
-  link_with : [libsso_mib],
-  c_args: sso_mib_tool_cargs_extra,
-  dependencies: [glibdep, giodep, jsondep, uuiddep, jwtdep],
-  install_tag : 'tool'
-)
-
 man_config = configuration_data()
 man_config.set('PACKAGE_NAME', meson.project_name())
 man_config.set('PACKAGE_VERSION', meson.project_version())
@@ -140,6 +127,7 @@ endif
 if get_option('tools')
   subdir('tools')
   alias_target('sso-mib-gch-smtp-o365', gch_smtp_office365)
+  alias_target('sso-mib-tool', sso_mib_tool)
 endif
 
 if get_option('examples')
