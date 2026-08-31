@@ -101,7 +101,7 @@ jobs:
             libgio-2.0-dev libjson-glib-dev libdbus-1-dev uuid-dev
       - name: build sso-mib-tool without libjwt
         run: |
-          meson -Dlibjwt=disabled build-minimal
+          meson setup -Dlibjwt=disabled build-minimal
           ninja -C build-minimal sso-mib-tool
       - name: build libjwt3
         run: |
@@ -118,7 +118,7 @@ jobs:
           cd $WORKDIR
       - name: build sso-mib-tool with libjwt3
         run: | 
-          meson -Dlibjwt=enabled build
+          meson setup -Dlibjwt=enabled build
           cd build && ninja sso-mib-tool
 
   deploy:
