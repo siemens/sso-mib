@@ -4,6 +4,10 @@ option('documentation',
        type: 'boolean',
        value: false,
        description: 'Build the documentation [default=false]')
+option('tools',
+       type: 'boolean',
+       value: true,
+       description: 'Build the tools [default=true]')
 option('examples',
        type: 'boolean',
        value: false,
