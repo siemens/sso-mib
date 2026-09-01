@@ -149,18 +149,31 @@ static void json_builder_add_jwt_token(JsonBuilder *builder, const gchar *token)
 }
 #endif
 
-static void print_json_builder(JsonBuilder *builder)
+static gchar *json_builder_to_string(JsonBuilder *builder)
 {
 	JsonGenerator *generator = json_generator_new();
 	JsonNode *root = json_builder_get_root(builder);
 	json_generator_set_root(generator, root);
 
 	gchar *buf = json_generator_to_data(generator, NULL);
-	g_print("%s\n", buf);
-	g_free(buf);
 
 	json_node_free(root);
 	g_object_unref(generator);
+	return buf;
+}
+
+static void print_json_builder(JsonBuilder *builder)
+{
+	gchar *buf = json_builder_to_string(builder);
+	g_print("%s\n", buf);
+	g_free(buf);
+}
+
+static void printerr_json_builder(JsonBuilder *builder)
+{
+	gchar *buf = json_builder_to_string(builder);
+	g_printerr("%s\n", buf);
+	g_free(buf);
 }
 
 static void print_prt_sso_cookie(MIBPrtSsoCookie *cookie, int decode)
@@ -433,12 +446,31 @@ static void print_single_account(MIBAccount *account)
 	print_account(account, "  ");
 }
 
+static void print_error(const gchar *command, const gchar *message)
+{
+	g_printerr("Error[%s]: %s\n", command, message);
+}
+
+static void json_print_error(const gchar *command, const gchar *message)
+{
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_object(builder);
+	json_builder_set_member_name(builder, "command");
+	json_builder_add_string_value(builder, command);
+	json_builder_set_member_name(builder, "error");
+	json_builder_add_string_value(builder, message);
+	json_builder_end_object(builder);
+	printerr_json_builder(builder);
+	g_object_unref(builder);
+}
+
 typedef struct {
 	void (*account)(MIBAccount *account);
 	void (*account_list)(GSList *accounts);
 	void (*prt_sso_cookie)(MIBPrtSsoCookie *cookie, int decode);
 	void (*prt_token)(MIBPrt *token, int decode);
 	void (*shr_token)(const gchar *token, int decode);
+	void (*error)(const gchar *command, const gchar *message);
 } OutputFormatter;
 
 static const OutputFormatter text_output = {
@@ -447,6 +479,7 @@ static const OutputFormatter text_output = {
 	.prt_sso_cookie = print_prt_sso_cookie,
 	.prt_token = print_prt_token,
 	.shr_token = print_shr_token,
+	.error = print_error,
 };
 
 static const OutputFormatter json_output = {
@@ -455,6 +488,7 @@ static const OutputFormatter json_output = {
 	.prt_sso_cookie = json_print_prt_sso_cookie,
 	.prt_token = json_print_prt_token,
 	.shr_token = json_print_shr_token,
+	.error = json_print_error,
 };
 
 static const OutputFormatter *output_formatter_by_name(const gchar *format)
@@ -568,8 +602,7 @@ static void finish_op(AppContext *ctx, int exit_code)
 static void print_api_error(AppContext *ctx, GError *error,
 							const char *fallback)
 {
-	g_printerr("Error[%s]: %s\n", ctx->command,
-			   error ? error->message : fallback);
+	ctx->out->error(ctx->command, error ? error->message : fallback);
 }
 
 static void on_broker_version_ready(GObject *source, GAsyncResult *res,
@@ -719,7 +752,7 @@ static void on_accounts_ready(GObject *source, GAsyncResult *res,
 	}
 
 	if ((unsigned)ctx->account_idx >= g_slist_length(accounts)) {
-		g_printerr("Error[%s]: Invalid account index\n", ctx->command);
+		ctx->out->error(ctx->command, "Invalid account index");
 		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
 		finish_op(ctx, 1);
 		return;
@@ -871,8 +904,7 @@ int main(int argc, char **argv)
 	MIBClientApp *app =
 		mib_public_client_app_new(client_id, authority, cancellable, &error);
 	if (!app) {
-		g_printerr("Error: Failed to start app: %s\n",
-				   error ? error->message : "unknown error");
+		out->error(command, error ? error->message : "failed to start app");
 		g_clear_error(&error);
 		g_object_unref(cancellable);
 		return 1;
@@ -889,7 +921,7 @@ int main(int argc, char **argv)
 	if (pop_params) {
 		pop_params_json = parse_to_json_object(pop_params);
 		if (!pop_params_json) {
-			g_print("Error: Failed to parse PoP parameters\n");
+			out->error(command, "Failed to parse PoP parameters");
 			g_object_unref(app);
 			g_object_unref(cancellable);
 			return 1;
@@ -924,12 +956,11 @@ int main(int argc, char **argv)
 												on_account_by_upn_ready, &ctx);
 	} else if (strcmp(command, "generateSignedHttpRequest") == 0 &&
 			   !auth_params) {
-		g_printerr(
-			"Error[generateSignedHttpRequest]: PoP parameters are required\n");
-		g_printerr(
-			"Example: -P "
+		out->error(
+			command,
+			"PoP parameters are required, e.g. -P "
 			"'{\"authenticationScheme\":\"PoP\",\"resourceRequestMethod\":"
-			"\"POST\",\"resourceRequestUri\":\"https://example.com/\"}'\n");
+			"\"POST\",\"resourceRequestUri\":\"https://example.com/\"}'");
 		ctx.exit_code = 1;
 	} else if (strcmp(command, "getAccounts") == 0 ||
 			   strcmp(command, "removeAccount") == 0 ||
@@ -942,7 +973,7 @@ int main(int argc, char **argv)
 		}
 		mib_client_app_get_accounts_async(app, on_accounts_ready, &ctx);
 	} else {
-		g_printerr("Unknown command: %s\n", command);
+		out->error(command, "unknown command");
 		ctx.exit_code = 1;
 	}
 
