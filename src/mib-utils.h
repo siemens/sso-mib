@@ -23,6 +23,13 @@ void debug_print_json_object(const gchar *func, const gchar *scope,
 JsonArray *mib_scopes_to_json(GSList *scopes);
 
 /**
+ * Extract the broker error description (brokerTokenResponse.error.context)
+ * from a response.
+ * Returns a newly allocated string or NULL if the response reports no error.
+ */
+gchar *mib_response_error_context(const gchar *response);
+
+/**
  * Helper to deep copy strings in a GSList.
  */
 gpointer copy_string(gconstpointer src, MIB_ARG_UNUSED gpointer data);
