@@ -3,7 +3,7 @@
 project(
   'sso-mib',
   'c',
-  version : '0.10.1',
+  version : '0.10.2',
   default_options : ['c_std=gnu11', 'warning_level=3'],
   license : 'GPL-2.0-only OR LGPL-2.1-only OR MIT',
   license_files : [
