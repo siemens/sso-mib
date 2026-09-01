@@ -78,6 +78,26 @@ static void interactive_async_ctx_free(gpointer data)
 	g_free(ctx);
 }
 
+/* Completes the task with the broker error description, if the response has one */
+static gboolean task_return_if_broker_error(GTask *task, const gchar *response)
+{
+	gchar *context = mib_response_error_context(response);
+	if (!context)
+		return FALSE;
+	g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_FAILED, "%s", context);
+	g_free(context);
+	return TRUE;
+}
+
+static void task_return_broker_error(GTask *task, const gchar *response,
+									 const gchar *fallback)
+{
+	if (task_return_if_broker_error(task, response))
+		return;
+	g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "%s",
+							fallback);
+}
+
 static void mib_client_app_finalize(GObject *gobject)
 {
 	MIBClientApp *priv = MIB_CLIENT_APP(gobject);
@@ -256,8 +276,12 @@ static void get_accounts_async_cb(GObject *source_object, GAsyncResult *res,
 		g_task_return_error(task, error);
 	} else {
 		GSList *accounts = get_accounts_process_response(response);
+		if (accounts) {
+			g_task_return_pointer(task, accounts, NULL);
+		} else if (!task_return_if_broker_error(task, response)) {
+			g_task_return_pointer(task, NULL, NULL);
+		}
 		g_free(response);
-		g_task_return_pointer(task, accounts, NULL);
 	}
 	g_object_unref(task);
 }
@@ -491,13 +515,13 @@ static void get_linux_broker_version_async_cb(GObject *source_object,
 		g_task_return_error(task, error);
 	} else {
 		gchar *version = linux_broker_version_process_response(response);
-		g_free(response);
 		if (version) {
 			g_task_return_pointer(task, version, g_free);
 		} else {
-			g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-									"could not parse broker version response");
+			task_return_broker_error(task, response,
+									 "could not parse broker version response");
 		}
+		g_free(response);
 	}
 	g_object_unref(task);
 }
@@ -697,24 +721,21 @@ static void acquire_token_silent_async_cb(GObject *source_object,
 	if (!ok) {
 		g_task_return_error(task, error);
 	} else {
+		MIBPrt *token = NULL;
 		JsonObject *token_json = json_object_from_string(response);
-		g_free(response);
-		if (!token_json) {
-			g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-									"could not parse token response");
-		} else {
+		if (token_json) {
 			debug_print_json_object("mib_acquire_token_silent", "response",
 									token_json);
-			MIBPrt *token = mib_prt_from_json(token_json, account);
+			token = mib_prt_from_json(token_json, account);
 			json_object_unref(token_json);
-			if (token) {
-				g_task_return_pointer(task, token, g_object_unref);
-			} else {
-				g_task_return_new_error(task, G_IO_ERROR,
-										G_IO_ERROR_INVALID_DATA,
-										"could not parse token from response");
-			}
 		}
+		if (token) {
+			g_task_return_pointer(task, token, g_object_unref);
+		} else {
+			task_return_broker_error(task, response,
+									 "could not parse token response");
+		}
+		g_free(response);
 	}
 	g_object_unref(task);
 }
@@ -880,14 +901,13 @@ static void acquire_token_interactive_async_cb(GObject *source_object,
 	} else {
 		MIBPrt *token =
 			acquire_token_interactive_process_response(response, ctx->account);
-		g_free(response);
 		if (token) {
 			g_task_return_pointer(task, token, g_object_unref);
 		} else {
-			g_task_return_new_error(
-				task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-				"could not parse interactive token response");
+			task_return_broker_error(
+				task, response, "could not parse interactive token response");
 		}
+		g_free(response);
 	}
 	g_object_unref(task);
 }
@@ -1150,13 +1170,13 @@ static void acquire_prt_sso_cookie_async_cb(GObject *source_object,
 	} else {
 		MIBPrtSsoCookie *cookie =
 			acquire_prt_sso_cookie_process_response(response);
-		g_free(response);
 		if (cookie) {
 			g_task_return_pointer(task, cookie, g_object_unref);
 		} else {
-			g_task_return_new_error(task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-									"could not parse PRT SSO cookie response");
+			task_return_broker_error(task, response,
+									 "could not parse PRT SSO cookie response");
 		}
+		g_free(response);
 	}
 	g_object_unref(task);
 }
@@ -1296,14 +1316,13 @@ static void generate_signed_http_request_async_cb(GObject *source_object,
 	} else {
 		gchar *access_token =
 			generate_signed_http_request_process_response(response);
-		g_free(response);
 		if (access_token) {
 			g_task_return_pointer(task, access_token, g_free);
 		} else {
-			g_task_return_new_error(
-				task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-				"could not parse signed HTTP request response");
+			task_return_broker_error(
+				task, response, "could not parse signed HTTP request response");
 		}
+		g_free(response);
 	}
 	g_object_unref(task);
 }
@@ -1407,8 +1426,9 @@ static void remove_account_async_cb(GObject *source_object, GAsyncResult *res,
 		g_task_return_error(task, error);
 	} else {
 		remove_account_process_response(response);
+		if (!task_return_if_broker_error(task, response))
+			g_task_return_int(task, 0);
 		g_free(response);
-		g_task_return_int(task, 0);
 	}
 	g_object_unref(task);
 }
