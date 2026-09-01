@@ -225,7 +225,7 @@ static void print_account(MIBAccount *account, gchar *prefix)
 	g_print("%susername: %s\n", prefix, mib_account_get_username(account));
 }
 
-static void print_account_list(GSList *accounts, gchar *prefix)
+static void print_account_list(GSList *accounts)
 {
 	int i = 0;
 	for (GSList *iter = accounts; iter; iter = g_slist_next(iter)) {
@@ -404,6 +404,68 @@ static void json_print_prt_token(MIBPrt *token, int decode)
 	g_object_unref(builder);
 }
 
+static void print_shr_token(const gchar *token, int decode)
+{
+	if (decode) {
+		print_decoded_jwt(token);
+	} else {
+		g_print("HTTP request token: %s\n", token);
+	}
+}
+
+static void json_print_shr_token(const gchar *token, int decode)
+{
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_object(builder);
+	json_builder_set_member_name(builder, "token");
+	if (decode) {
+		json_builder_add_jwt_token(builder, token);
+	} else {
+		json_builder_add_string_value(builder, token);
+	}
+	json_builder_end_object(builder);
+	print_json_builder(builder);
+	g_object_unref(builder);
+}
+
+static void print_single_account(MIBAccount *account)
+{
+	print_account(account, "  ");
+}
+
+typedef struct {
+	void (*account)(MIBAccount *account);
+	void (*account_list)(GSList *accounts);
+	void (*prt_sso_cookie)(MIBPrtSsoCookie *cookie, int decode);
+	void (*prt_token)(MIBPrt *token, int decode);
+	void (*shr_token)(const gchar *token, int decode);
+} OutputFormatter;
+
+static const OutputFormatter text_output = {
+	.account = print_single_account,
+	.account_list = print_account_list,
+	.prt_sso_cookie = print_prt_sso_cookie,
+	.prt_token = print_prt_token,
+	.shr_token = print_shr_token,
+};
+
+static const OutputFormatter json_output = {
+	.account = json_print_account,
+	.account_list = json_print_account_list,
+	.prt_sso_cookie = json_print_prt_sso_cookie,
+	.prt_token = json_print_prt_token,
+	.shr_token = json_print_shr_token,
+};
+
+static const OutputFormatter *output_formatter_by_name(const gchar *format)
+{
+	if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0)
+		return &text_output;
+	if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0)
+		return &json_output;
+	return NULL;
+}
+
 static JsonObject *parse_to_json_object(const gchar *data)
 {
 	JsonParser *parser = json_parser_new();
@@ -482,6 +544,209 @@ GSList *default_scope_if_empty(GSList *scopes)
 		scopes = g_slist_append(scopes, g_strdup(MIB_SCOPE_GRAPH_DEFAULT));
 	}
 	return scopes;
+}
+
+typedef struct {
+	GMainLoop *loop;
+	const char *command;
+	MIBAccount *account;
+	int account_idx;
+	MIBPopParams *auth_params;
+	GSList *scopes;
+	const char *renew_token;
+	int decode;
+	const OutputFormatter *out;
+	int exit_code;
+} AppContext;
+
+static void finish_op(AppContext *ctx, int exit_code)
+{
+	ctx->exit_code = exit_code;
+	g_main_loop_quit(ctx->loop);
+}
+
+static void print_api_error(AppContext *ctx, GError *error,
+							const char *fallback)
+{
+	g_printerr("Error[%s]: %s\n", ctx->command,
+			   error ? error->message : fallback);
+}
+
+static void on_broker_version_ready(GObject *source, GAsyncResult *res,
+									gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	GError *error = NULL;
+	gchar *version = mib_client_app_get_linux_broker_version_finish(
+		MIB_CLIENT_APP(source), res, &error);
+	if (!version) {
+		print_api_error(ctx, error, "Failed to get version");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+	g_print("Linux broker version: %s\n", version);
+	g_free(version);
+	finish_op(ctx, 0);
+}
+
+static void on_account_by_upn_ready(GObject *source, GAsyncResult *res,
+									gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	GError *error = NULL;
+	MIBAccount *account = mib_client_app_get_account_by_upn_finish(
+		MIB_CLIENT_APP(source), res, &error);
+	if (!account) {
+		print_api_error(ctx, error, "No accounts found");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+	ctx->out->account(account);
+	g_object_unref(account);
+	finish_op(ctx, 0);
+}
+
+static void on_account_removed(GObject *source, GAsyncResult *res,
+							   gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	GError *error = NULL;
+	int ret = mib_client_app_remove_account_finish(MIB_CLIENT_APP(source), res,
+												   &error);
+	if (ret != 0) {
+		print_api_error(ctx, error, "Failed to remove account");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+	g_print("removed account\n");
+	finish_op(ctx, 0);
+}
+
+static void on_prt_sso_cookie_ready(GObject *source, GAsyncResult *res,
+									gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	GError *error = NULL;
+	MIBPrtSsoCookie *prt_cookie = mib_client_app_acquire_prt_sso_cookie_finish(
+		MIB_CLIENT_APP(source), res, &error);
+	if (!prt_cookie) {
+		print_api_error(ctx, error, "Failed to acquire PRT SSO cookie");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+	ctx->out->prt_sso_cookie(prt_cookie, ctx->decode);
+	g_object_unref(prt_cookie);
+	finish_op(ctx, 0);
+}
+
+static void on_token_silent_ready(GObject *source, GAsyncResult *res,
+								  gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	GError *error = NULL;
+	MIBPrt *prt_token = mib_client_app_acquire_token_silent_finish(
+		MIB_CLIENT_APP(source), res, &error);
+	if (!prt_token) {
+		print_api_error(ctx, error, "Failed to acquire token");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+	ctx->out->prt_token(prt_token, ctx->decode);
+	g_object_unref(prt_token);
+	finish_op(ctx, 0);
+}
+
+static void on_token_interactive_ready(GObject *source, GAsyncResult *res,
+									   gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	GError *error = NULL;
+	MIBPrt *prt_token = mib_client_app_acquire_token_interactive_finish(
+		MIB_CLIENT_APP(source), res, &error);
+	if (!prt_token) {
+		print_api_error(ctx, error, "Failed to acquire token");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+	ctx->out->prt_token(prt_token, ctx->decode);
+	g_object_unref(prt_token);
+	finish_op(ctx, 0);
+}
+
+static void on_signed_http_request_ready(GObject *source, GAsyncResult *res,
+										 gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	GError *error = NULL;
+	gchar *token = mib_client_app_generate_signed_http_request_finish(
+		MIB_CLIENT_APP(source), res, &error);
+	if (!token) {
+		print_api_error(ctx, error, "Failed to generate signed HTTP request");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+	ctx->out->shr_token(token, ctx->decode);
+	g_free(token);
+	finish_op(ctx, 0);
+}
+
+static void on_accounts_ready(GObject *source, GAsyncResult *res,
+							  gpointer user_data)
+{
+	AppContext *ctx = user_data;
+	MIBClientApp *app = MIB_CLIENT_APP(source);
+	GError *error = NULL;
+	GSList *accounts = mib_client_app_get_accounts_finish(app, res, &error);
+	if (!accounts) {
+		print_api_error(ctx, error, "No accounts found");
+		g_clear_error(&error);
+		finish_op(ctx, 1);
+		return;
+	}
+
+	if (strcmp(ctx->command, "getAccounts") == 0) {
+		ctx->out->account_list(accounts);
+		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+		finish_op(ctx, 0);
+		return;
+	}
+
+	if ((unsigned)ctx->account_idx >= g_slist_length(accounts)) {
+		g_printerr("Error[%s]: Invalid account index\n", ctx->command);
+		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+		finish_op(ctx, 1);
+		return;
+	}
+	// keep the selected account alive for the chained operation
+	ctx->account =
+		g_object_ref(g_slist_nth_data(accounts, (guint)ctx->account_idx));
+	g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
+
+	if (strcmp(ctx->command, "removeAccount") == 0) {
+		g_print("Selected account: %s\n",
+				mib_account_get_username(ctx->account));
+		mib_client_app_remove_account_async(app, ctx->account,
+											on_account_removed, ctx);
+	} else if (strcmp(ctx->command, "acquirePrtSsoCookie") == 0) {
+		mib_client_app_acquire_prt_sso_cookie_async(
+			app, ctx->account, MIB_SSO_URL_DEFAULT, ctx->scopes,
+			on_prt_sso_cookie_ready, ctx);
+	} else if (strcmp(ctx->command, "acquireTokenSilent") == 0) {
+		mib_client_app_acquire_token_silent_async(
+			app, ctx->account, ctx->scopes, NULL, ctx->auth_params,
+			ctx->renew_token, on_token_silent_ready, ctx);
+	} else {
+		mib_client_app_generate_signed_http_request_async(
+			app, ctx->account, ctx->auth_params, on_signed_http_request_ready,
+			ctx);
+	}
 }
 
 static void print_help(char *name)
@@ -589,17 +854,27 @@ int main(int argc, char **argv)
 		g_print("Error: -a <account-idx> cannot be negative\n");
 		return 1;
 	}
+	const OutputFormatter *out = output_formatter_by_name(format);
+	if (!out) {
+		g_printerr("Error: Unsupported output format: %s\n", format);
+		return 1;
+	}
 	if (scopes && (strncmp(command, "acquire", strlen("acquire")) != 0)) {
 		g_slist_free_full(scopes, g_free);
+		scopes = NULL;
 		g_printerr(
 			"Warning: scopes must only be provided on acquire* commands. Ignoring\n");
 	}
 
 	cancellable = g_cancellable_new();
+	GError *error = NULL;
 	MIBClientApp *app =
-		mib_public_client_app_new(client_id, authority, cancellable, NULL);
+		mib_public_client_app_new(client_id, authority, cancellable, &error);
 	if (!app) {
-		g_print("Error: Failed to start app\n");
+		g_printerr("Error: Failed to start app: %s\n",
+				   error ? error->message : "unknown error");
+		g_clear_error(&error);
+		g_object_unref(cancellable);
 		return 1;
 	}
 	mib_client_app_set_enforce_interactive(app, enforce_interactive);
@@ -623,236 +898,64 @@ int main(int argc, char **argv)
 		json_object_unref(pop_params_json);
 	}
 
-	if (strcmp(command, "getAccounts") == 0 && account_hint) {
-		MIBAccount *account = NULL;
-		account = mib_client_app_get_account_by_upn(app, account_hint);
-		g_free(account_hint);
-		if (!account) {
-			g_print("Error[getAccounts]: No accounts found\n");
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
-			print_account(account, "  ");
-		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
-			json_print_account(account);
-		} else {
-			g_print("Error[getAccounts]: Unsupported output format: %s\n",
-					format);
-		}
-		g_object_unref(account);
-	} else if (strcmp(command, "getAccounts") == 0) {
-		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts) {
-			g_print("Error[getAccounts]: No accounts found\n");
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
-			print_account_list(accounts, " ");
-		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
-			json_print_account_list(accounts);
-		} else {
-			g_print("Error[getAccounts]: Unsupported output format: %s\n",
-					format);
-		}
-		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-	} else if (strcmp(command, "removeAccount") == 0) {
-		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
-			if (!accounts)
-				g_print("No accounts registered\n");
-			else
-				g_print("Invalid account index\n");
-			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		MIBAccount *account = g_slist_nth_data(accounts, account_idx);
-		g_print("Selected account: %s\n", mib_account_get_username(account));
-		int ret = mib_client_app_remove_account(app, account);
-		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-		if (ret == 0) {
-			g_print("removed account\n");
-		} else {
-			g_print("failed to remove account\n");
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-	} else if (strcmp(command, "acquirePrtSsoCookie") == 0) {
-		scopes = default_scope_if_empty(scopes);
-		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
-			g_print("Error[acquirePrtSsoCookie]: %s\n",
-					!accounts ? "No accounts found" : "Invalid account index");
-			g_slist_free_full(scopes, g_free);
-			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		MIBAccount *account = g_slist_nth_data(accounts, account_idx);
-		MIBPrtSsoCookie *prt_cookie = mib_client_app_acquire_prt_sso_cookie(
-			app, account, MIB_SSO_URL_DEFAULT, scopes);
-		g_slist_free_full(scopes, g_free);
-		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-		if (!prt_cookie) {
-			g_print(
-				"Error[acquirePrtSsoCookie]: Failed to acquire PRT SSO cookie\n");
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
-			print_prt_sso_cookie(prt_cookie, decode);
-		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
-			json_print_prt_sso_cookie(prt_cookie, decode);
-		} else {
-			g_print(
-				"Error[acquirePrtSsoCookie]: Unsupported output format: %s\n",
-				format);
-		}
-		g_object_unref(prt_cookie);
-	} else if (strcmp(command, "acquireTokenSilent") == 0) {
-		scopes = default_scope_if_empty(scopes);
-		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
-			g_print("Error[acquireTokenSilent]: %s\n",
-					!accounts ? "No accounts found" : "Invalid account index");
-			g_slist_free_full(scopes, g_free);
-			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		MIBAccount *account = g_slist_nth_data(accounts, account_idx);
-		MIBPrt *prt_token = mib_client_app_acquire_token_silent(
-			app, account, scopes, NULL, auth_params, renew_token);
-		g_slist_free_full(scopes, g_free);
-		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-		if (auth_params)
-			g_object_unref(auth_params);
-		if (!prt_token) {
-			g_print("Error[acquireTokenSilent]: Failed to acquire token\n");
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
-			print_prt_token(prt_token, decode);
-		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
-			json_print_prt_token(prt_token, decode);
-		} else {
-			g_print(
-				"Error[acquireTokenSilent]: Unsupported output format: %s\n",
-				format);
-		}
-		g_object_unref(prt_token);
+	AppContext ctx = {
+		.loop = g_main_loop_new(NULL, FALSE),
+		.command = command,
+		.account = NULL,
+		.account_idx = account_idx,
+		.auth_params = auth_params,
+		.scopes = scopes,
+		.renew_token = renew_token,
+		.decode = decode,
+		.out = out,
+		.exit_code = 0,
+	};
+
+	if (strcmp(command, "getLinuxBrokerVersion") == 0) {
+		mib_client_app_get_linux_broker_version_async(
+			app, MSAL_CPP_VERSION, on_broker_version_ready, &ctx);
 	} else if (strcmp(command, "acquireTokenInteractive") == 0) {
-		scopes = default_scope_if_empty(scopes);
-		MIBPrt *prt_token = mib_client_app_acquire_token_interactive(
-			app, scopes, MIB_PROMPT_CONSENT, NULL, NULL, NULL, auth_params);
-		g_slist_free_full(scopes, g_free);
-		if (auth_params)
-			g_object_unref(auth_params);
-		if (!prt_token) {
-			g_print(
-				"Error[acquireTokenInteractive]: Failed to acquire token\n");
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
+		ctx.scopes = default_scope_if_empty(ctx.scopes);
+		mib_client_app_acquire_token_interactive_async(
+			app, ctx.scopes, MIB_PROMPT_CONSENT, NULL, NULL, NULL,
+			ctx.auth_params, on_token_interactive_ready, &ctx);
+	} else if (strcmp(command, "getAccounts") == 0 && account_hint) {
+		mib_client_app_get_account_by_upn_async(app, account_hint,
+												on_account_by_upn_ready, &ctx);
+	} else if (strcmp(command, "generateSignedHttpRequest") == 0 &&
+			   !auth_params) {
+		g_printerr(
+			"Error[generateSignedHttpRequest]: PoP parameters are required\n");
+		g_printerr(
+			"Example: -P "
+			"'{\"authenticationScheme\":\"PoP\",\"resourceRequestMethod\":"
+			"\"POST\",\"resourceRequestUri\":\"https://example.com/\"}'\n");
+		ctx.exit_code = 1;
+	} else if (strcmp(command, "getAccounts") == 0 ||
+			   strcmp(command, "removeAccount") == 0 ||
+			   strcmp(command, "acquirePrtSsoCookie") == 0 ||
+			   strcmp(command, "acquireTokenSilent") == 0 ||
+			   strcmp(command, "generateSignedHttpRequest") == 0) {
+		if (strcmp(command, "acquirePrtSsoCookie") == 0 ||
+			strcmp(command, "acquireTokenSilent") == 0) {
+			ctx.scopes = default_scope_if_empty(ctx.scopes);
 		}
-		if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
-			print_prt_token(prt_token, decode);
-		} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
-			json_print_prt_token(prt_token, decode);
-		} else {
-			g_print(
-				"Error[acquireTokenInteractive]: Unsupported output format: %s\n",
-				format);
-		}
-		g_object_unref(prt_token);
-	} else if (strcmp(command, "getLinuxBrokerVersion") == 0) {
-		gchar *version =
-			mib_client_app_get_linux_broker_version(app, MSAL_CPP_VERSION);
-		if (version) {
-			g_print("Linux broker version: %s\n", version);
-			g_free(version);
-		} else {
-			g_print("Error[getLinuxBrokerVersion]: Failed to get version\n");
-			return 1;
-		}
-	} else if (strcmp(command, "generateSignedHttpRequest") == 0) {
-		GSList *accounts = mib_client_app_get_accounts(app);
-		if (!accounts || (unsigned)account_idx >= g_slist_length(accounts)) {
-			g_print("Error[generateSignedHttpRequest]: %s\n",
-					!accounts ? "No accounts found" : "Invalid account index");
-			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		if (!auth_params) {
-			g_print(
-				"Error[generateSignedHttpRequest]: PoP parameters are required\n");
-			g_print(
-				"Example: -P "
-				"'{\"authenticationScheme\":\"PoP\",\"resourceRequestMethod\":"
-				"\"POST\",\"resourceRequestUri\":\"https://example.com/\"}'\n");
-			g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
-		MIBAccount *account = g_slist_nth_data(accounts, account_idx);
-		gchar *token = mib_client_app_generate_signed_http_request(app, account,
-																   auth_params);
-		g_object_unref(auth_params);
-		g_slist_free_full(accounts, (GDestroyNotify)g_object_unref);
-		if (token) {
-			if (g_ascii_strcasecmp(format, FORMAT_TEXT) == 0) {
-				if (decode) {
-					print_decoded_jwt(token);
-				} else {
-					g_print("HTTP request token: %s\n", token);
-				}
-			} else if (g_ascii_strcasecmp(format, FORMAT_JSON) == 0) {
-				JsonBuilder *builder = json_builder_new();
-				json_builder_begin_object(builder);
-				json_builder_set_member_name(builder, "token");
-				if (decode) {
-					json_builder_add_jwt_token(builder, token);
-				} else {
-					json_builder_add_string_value(builder, token);
-				}
-				json_builder_end_object(builder);
-				print_json_builder(builder);
-				g_object_unref(builder);
-			} else {
-				g_print(
-					"Error[generateSignedHttpRequest]: Unsupported output format: %s\n",
-					format);
-			}
-			g_free(token);
-		} else {
-			g_print(
-				"Error[generateSignedHttpRequest]: Failed to generate signed "
-				"HTTP request\n");
-			g_object_unref(app);
-			g_object_unref(cancellable);
-			return 1;
-		}
+		mib_client_app_get_accounts_async(app, on_accounts_ready, &ctx);
 	} else {
-		g_print("Unknown command: %s\n", command);
-		g_object_unref(app);
-		g_object_unref(cancellable);
-		return 1;
+		g_printerr("Unknown command: %s\n", command);
+		ctx.exit_code = 1;
 	}
+
+	if (ctx.exit_code == 0)
+		g_main_loop_run(ctx.loop);
+
+	g_main_loop_unref(ctx.loop);
+	g_slist_free_full(ctx.scopes, g_free);
+	g_free(account_hint);
+	g_clear_object(&ctx.account);
+	if (auth_params)
+		g_object_unref(auth_params);
 	g_object_unref(app);
 	g_object_unref(cancellable);
-	return 0;
+	return ctx.exit_code;
 }
