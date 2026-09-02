@@ -77,6 +77,32 @@ JsonArray *mib_scopes_to_json(GSList *scopes)
 	return scopes_array;
 }
 
+gchar *mib_response_error_context(const gchar *response)
+{
+	if (!response)
+		return NULL;
+
+	JsonObject *root = json_object_from_string(response);
+	if (!root)
+		return NULL;
+
+	gchar *context = NULL;
+	JsonNode *broker_resp = json_object_get_member(root, "brokerTokenResponse");
+	if (broker_resp && JSON_NODE_HOLDS_OBJECT(broker_resp)) {
+		JsonNode *error_node =
+			json_object_get_member(json_node_get_object(broker_resp), "error");
+		if (error_node && JSON_NODE_HOLDS_OBJECT(error_node)) {
+			JsonNode *context_node = json_object_get_member(
+				json_node_get_object(error_node), "context");
+			if (context_node && JSON_NODE_HOLDS_VALUE(context_node))
+				context = g_strdup(json_node_get_string(context_node));
+		}
+	}
+
+	json_object_unref(root);
+	return context;
+}
+
 gpointer copy_string(gconstpointer src, MIB_ARG_UNUSED gpointer data)
 {
 	return g_strdup((const gchar *)src);
