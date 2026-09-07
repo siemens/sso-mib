@@ -120,6 +120,13 @@ configure_file(input : 'man/sso-mib-gch-smtp-o365.1.in',
                install_dir : join_paths(get_option('mandir'), 'man1'),
                install_tag : 'git-cred-helper')
 
+configure_file(input : 'man/sso-mib-linux-entra-sso.1.in',
+               output : 'sso-mib-linux-entra-sso.1',
+               configuration : man_config,
+               install : true,
+               install_dir : join_paths(get_option('mandir'), 'man1'),
+               install_tag : 'linux-entra-sso')
+
 if get_option('documentation')
   subdir('docs')
 endif
@@ -127,6 +134,7 @@ endif
 if get_option('tools')
   subdir('tools')
   alias_target('sso-mib-gch-smtp-o365', gch_smtp_office365)
+  alias_target('linux-entra-sso', linux_entra_sso)
   alias_target('sso-mib-tool', sso_mib_tool)
 endif
 
