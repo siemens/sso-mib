@@ -89,5 +89,5 @@ Since version `v0.8`, the following keys are used:
 ## License
 
 The library is licensed according to the terms of the GNU Lesser General Public License v2.1.
-The tooling is licensed according to the terms of the GNU Public License v2.0.
-The examples are licensed according to the terms of the MIT License.
+The `sso-mib-tool` is licensed under GPL-2.0-only.
+Other tooling and examples are licensed under the MIT License.
