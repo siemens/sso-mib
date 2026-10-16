@@ -14,6 +14,7 @@ and can be used to obtain Proof-of-Possession tokens for RDP [[MS-RDPBCGR](https
 - libdbus
 - libuuid
 - libjwt (only for sso-mib-tool)
+- libsasl2-2 (only for sso-mib-sasl-xoauth2)
 
 ## Interface
 

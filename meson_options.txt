@@ -20,3 +20,7 @@ option('libjwt',
        description: 'Enable code that depends on libjwt',
        type: 'feature',
        value: 'auto')
+option('libsasl2',
+       description: 'Enable code that depends on libsasl2',
+       type: 'feature',
+       value: 'auto')
