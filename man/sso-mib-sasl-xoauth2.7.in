@@ -1,0 +1,37 @@
+.\" SPDX-FileCopyrightText: (C) 2026 Siemens AG
+.\" SPDX-License-Identifier: MIT
+.TH SSO\-MIB\-SASL\-XOAUTH2 7 "2026" "@PACKAGE_NAME@ @PACKAGE_VERSION@" "Miscellaneous Information Manual"
+.SH NAME
+sso\-mib\-sasl\-xoauth2 \- Cyrus SASL XOAUTH2 client plugin for sso-mib
+.SH DESCRIPTION
+The XOAUTH2 client mechanism acquires Microsoft Entra ID access tokens through
+sso-mib and the Microsoft Identity Broker. The SASL authname selects an existing
+broker account by user principal name (UPN). Token acquisition may prompt for
+sign-in or consent and makes blocking D-Bus calls.
+.PP
+Enable the
+.B XOAUTH2
+mechanism in the SASL client configuration to use this plugin.
+.SH CAVEATS
+Access tokens are replayable bearer credentials. Use this plugin only over
+TLS-protected connections with server certificate validation. The plugin cannot
+verify that the client established TLS.
+.SH ENVIRONMENT
+.TP
+.B MIB_SASL_CLIENT_ID
+Required Azure client application ID.
+.TP
+.B MIB_SASL_AUTHORITY
+Entra ID authority URL. Defaults to
+.BR https://login.microsoftonline.com/common .
+.TP
+.B MIB_SASL_SCOPES
+Scopes separated by spaces, tabs, or commas. Defaults to
+.B offline_access
+and
+.BR https://outlook.office365.com/IMAP.AccessAsUser.All .
+.PP
+These variables are read for each authentication attempt.
+.SH SEE ALSO
+.BR sso-mib-tool (1),
+.BR saslpluginviewer (8)
