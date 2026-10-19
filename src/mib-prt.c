@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-only
  */
 
-#include "mib-utils.h"
+#include "mib-utils-impl.h"
 #include "mib-account.h"
 #include "mib-account-impl.h"
 

@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: (C) 2025 Siemens
  * SPDX-License-Identifier: LGPL-2.1-only
  */
-#include "mib-utils.h"
+#include "mib-utils-impl.h"
 #include "mib-pop-params.h"
 
 struct _MIBPopParams {

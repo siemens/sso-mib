@@ -9,7 +9,7 @@
 #include "mib-pop-params-impl.h"
 #include "mib-prt-impl.h"
 #include "mib-prt-sso-cookie-impl.h"
-#include "mib-utils.h"
+#include "mib-utils-impl.h"
 
 #define DBUS_BROKER_NAME "com.microsoft.identity.broker1"
 #define DBUS_BROKER_PATH "/com/microsoft/identity/broker1"
