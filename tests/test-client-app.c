@@ -530,7 +530,7 @@ static void test_generate_signed_http_request(void)
 	g_assert_nonnull(signed_req);
 	g_assert_cmpstr(signed_req, ==, "signed-request-token-value");
 
-	g_free(signed_req);
+	mib_secure_free_string(signed_req);
 	g_object_unref(account);
 	g_object_unref(app);
 }
@@ -551,7 +551,7 @@ static void generate_signed_http_request_async_cb(GObject *source_object,
 	g_assert_nonnull(signed_req);
 	g_assert_cmpstr(signed_req, ==, "signed-request-token-value");
 
-	g_free(signed_req);
+	mib_secure_free_string(signed_req);
 	g_main_loop_quit(loop);
 }
 

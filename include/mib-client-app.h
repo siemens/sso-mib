@@ -446,14 +446,15 @@ PUBLIC_API MIBPrtSsoCookie *mib_client_app_acquire_prt_sso_cookie_finish(
  * This function implements the Acquiring Access Tokens Protected with
  * Proof-of-Possession (PoP) specification.
  * 
- * The user is responsible for freeing the string with \c g_free .
+ * The user is responsible for securely freeing the string with
+ * \ref mib_secure_free_string.
  *
  * \dbuscall{generateSignedHttpRequest}
  *
  * \param app client app object
  * \param account mib account reference
  * \param pop_params PoP parameters
- * \return access token (must be freed with g_free())
+ * \return access token (must be freed with mib_secure_free_string())
  */
 PUBLIC_API gchar *mib_client_app_generate_signed_http_request(
 	MIBClientApp *app, MIBAccount *account, MIBPopParams *pop_params);
@@ -478,12 +479,14 @@ PUBLIC_API void mib_client_app_generate_signed_http_request_async(
 /**
  * \brief Finish an async signed HTTP request generation
  *
- * The user is responsible for freeing the string with \c g_free .
+ * The user is responsible for securely freeing the string with
+ * \ref mib_secure_free_string.
  *
  * \param app client app object
  * \param result the GAsyncResult passed to the callback
  * \param error return location for a GError or NULL
- * \return access token (must be freed with g_free()) or NULL on error
+ * \return access token (must be freed with mib_secure_free_string()) or NULL
+ * on error
  */
 PUBLIC_API gchar *mib_client_app_generate_signed_http_request_finish(
 	MIBClientApp *app, GAsyncResult *result, GError **error);

@@ -21,7 +21,7 @@ static void mib_prt_sso_cookie_finalize(GObject *gobject)
 {
 	MIBPrtSsoCookie *priv = MIB_PRT_SSO_COOKIE(gobject);
 	g_clear_pointer(&priv->name, g_free);
-	g_clear_pointer(&priv->content, g_free);
+	g_clear_pointer(&priv->content, mib_secure_free_string);
 	G_OBJECT_CLASS(mib_prt_sso_cookie_parent_class)->finalize(gobject);
 }
 
@@ -38,6 +38,7 @@ static void mib_prt_sso_cookie_init(MIB_ARG_UNUSED MIBPrtSsoCookie *self)
 MIBPrtSsoCookie *mib_prt_sso_cookie_from_json(JsonObject *cookie_json)
 {
 	MIBPrtSsoCookie *cookie;
+	const gchar *secret_buffer = NULL;
 	/* microsoft-identity-broker > 2.0.1 */
 	if (json_object_has_member(cookie_json, "cookieItems")) {
 		JsonArray *cookie_items =
@@ -58,8 +59,9 @@ MIBPrtSsoCookie *mib_prt_sso_cookie_from_json(JsonObject *cookie_json)
 	cookie = g_object_new(MIB_TYPE_PRT_SSO_COOKIE, NULL);
 	cookie->name =
 		g_strdup(json_object_get_string_member(cookie_json, "cookieName"));
-	cookie->content =
-		g_strdup(json_object_get_string_member(cookie_json, "cookieContent"));
+	secret_buffer = json_object_get_string_member(cookie_json, "cookieContent");
+	cookie->content = g_strdup(secret_buffer);
+	secure_wipe_string((gchar *)secret_buffer);
 	return cookie;
 }
 

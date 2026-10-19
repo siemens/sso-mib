@@ -25,11 +25,11 @@ G_DEFINE_TYPE(MIBPrt, mib_prt, G_TYPE_OBJECT)
 static void mib_prt_finalize(GObject *gobject)
 {
 	MIBPrt *self = MIB_PRT(gobject);
-	g_clear_pointer(&self->access_token, g_free);
+	g_clear_pointer(&self->access_token, mib_secure_free_string);
 	g_clear_object(&self->account);
 	g_clear_pointer(&self->client_info, g_free);
 	g_clear_pointer(&self->granted_scopes, g_strfreev);
-	g_clear_pointer(&self->id_token, g_free);
+	g_clear_pointer(&self->id_token, mib_secure_free_string);
 	G_OBJECT_CLASS(mib_prt_parent_class)->finalize(gobject);
 }
 
@@ -61,6 +61,7 @@ MIBPrt *mib_prt_from_json(JsonObject *token_json, MIBAccount *fallback_account)
 {
 	MIBAccount *account = NULL;
 	MIBPrt *token = NULL;
+	const gchar *secret_buffer = NULL;
 	const char *members[] = { "accessToken",  "accessTokenType",
 							  "clientInfo",	  "expiresOn",		 "idToken",
 							  "grantedScopes" };
@@ -77,8 +78,9 @@ MIBPrt *mib_prt_from_json(JsonObject *token_json, MIBAccount *fallback_account)
 	}
 
 	token = g_object_new(MIB_TYPE_PRT, NULL);
-	token->access_token =
-		g_strdup(json_object_get_string_member(broker_resp, "accessToken"));
+	secret_buffer = json_object_get_string_member(broker_resp, "accessToken");
+	token->access_token = g_strdup(secret_buffer);
+	secure_wipe_string((gchar *)secret_buffer);
 	token->access_token_type = mib_prt_token_type_from_ext(
 		json_object_get_int_member(broker_resp, "accessTokenType"));
 	if (json_object_has_member(broker_resp, "account")) {
@@ -97,8 +99,9 @@ MIBPrt *mib_prt_from_json(JsonObject *token_json, MIBAccount *fallback_account)
 		g_strdup(json_object_get_string_member(broker_resp, "clientInfo"));
 	token->expires_on =
 		json_object_get_int_member(broker_resp, "expiresOn") / 1000;
-	token->id_token =
-		g_strdup(json_object_get_string_member(broker_resp, "idToken"));
+	secret_buffer = json_object_get_string_member(broker_resp, "idToken");
+	token->id_token = g_strdup(secret_buffer);
+	secure_wipe_string((gchar *)secret_buffer);
 	const gchar *granted_scopes =
 		json_object_get_string_member(broker_resp, "grantedScopes");
 	token->granted_scopes = g_strsplit(granted_scopes, " ", -1);
