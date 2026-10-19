@@ -1249,7 +1249,7 @@ static gchar *
 generate_signed_http_request_process_response(const gchar *response)
 {
 	gchar *access_token = NULL;
-	const gchar* secret_buffer = NULL;
+	const gchar *secret_buffer = NULL;
 	JsonObject *token_json = json_object_from_string(response);
 	if (!token_json) {
 		g_warning("could not parse signed HTTP request response");
@@ -1262,7 +1262,8 @@ generate_signed_http_request_process_response(const gchar *response)
 		g_warning("response json is missing 'signedHttpRequest'");
 		goto err;
 	}
-	secret_buffer = json_object_get_string_member(token_json, "signedHttpRequest");
+	secret_buffer =
+		json_object_get_string_member(token_json, "signedHttpRequest");
 	access_token = g_strdup(secret_buffer);
 	secure_wipe_string((gchar *)secret_buffer);
 err:

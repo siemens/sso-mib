@@ -726,7 +726,7 @@ static void on_signed_http_request_ready(GObject *source, GAsyncResult *res,
 		return;
 	}
 	ctx->out->shr_token(token, ctx->decode);
-	g_free(token);
+	mib_secure_free_string(token);
 	finish_op(ctx, 0);
 }
 
