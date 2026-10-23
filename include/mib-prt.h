@@ -17,6 +17,12 @@
 /**
  * \defgroup prt Primary Refresh Token
  * \brief Token derived from Primary Refresh Token
+ *
+ * \note Token contents are securely wiped from memory when the object is destroyed.
+ * Use pointers returned by the accessors directly, without making copies. This
+ * avoids duplicating sensitive content in memory and ensures it is wiped when the
+ * object is destroyed.
+ *
  * \addtogroup prt
  *  @{
  */

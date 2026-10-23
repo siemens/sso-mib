@@ -9,7 +9,7 @@
 #include "mib-pop-params-impl.h"
 #include "mib-prt-impl.h"
 #include "mib-prt-sso-cookie-impl.h"
-#include "mib-utils.h"
+#include "mib-utils-impl.h"
 
 #define DBUS_BROKER_NAME "com.microsoft.identity.broker1"
 #define DBUS_BROKER_PATH "/com/microsoft/identity/broker1"
@@ -694,7 +694,7 @@ MIBPrt *mib_client_app_acquire_token_silent(MIBClientApp *app,
 		return NULL;
 	}
 	token_json = json_object_from_string(response);
-	g_free(response);
+	mib_secure_free_string(response);
 	if (!token_json) {
 		g_warning("could not parse token response");
 		return NULL;
@@ -735,7 +735,7 @@ static void acquire_token_silent_async_cb(GObject *source_object,
 			task_return_broker_error(task, response,
 									 "could not parse token response");
 		}
-		g_free(response);
+		mib_secure_free_string(response);
 	}
 	g_object_unref(task);
 }
@@ -873,7 +873,7 @@ MIBPrt *mib_client_app_acquire_token_interactive(
 		}
 
 		token = acquire_token_interactive_process_response(response, account);
-		g_free(response);
+		mib_secure_free_string(response);
 	}
 err:
 	g_clear_object(&account);
@@ -907,7 +907,7 @@ static void acquire_token_interactive_async_cb(GObject *source_object,
 			task_return_broker_error(
 				task, response, "could not parse interactive token response");
 		}
-		g_free(response);
+		mib_secure_free_string(response);
 	}
 	g_object_unref(task);
 }
@@ -947,7 +947,7 @@ static void interactive_silent_cb(GObject *source_object, GAsyncResult *res,
 		proxy, &response, res, &error);
 	if (ok) {
 		JsonObject *token_json = json_object_from_string(response);
-		g_free(response);
+		mib_secure_free_string(response);
 		if (token_json) {
 			debug_print_json_object("mib_acquire_token_silent", "response",
 									token_json);
@@ -1149,7 +1149,7 @@ MIBPrtSsoCookie *mib_client_app_acquire_prt_sso_cookie(MIBClientApp *app,
 		return NULL;
 	}
 	cookie = acquire_prt_sso_cookie_process_response(response);
-	g_free(response);
+	mib_secure_free_string(response);
 	return cookie;
 }
 
@@ -1176,7 +1176,7 @@ static void acquire_prt_sso_cookie_async_cb(GObject *source_object,
 			task_return_broker_error(task, response,
 									 "could not parse PRT SSO cookie response");
 		}
-		g_free(response);
+		mib_secure_free_string(response);
 	}
 	g_object_unref(task);
 }
@@ -1249,6 +1249,7 @@ static gchar *
 generate_signed_http_request_process_response(const gchar *response)
 {
 	gchar *access_token = NULL;
+	const gchar *secret_buffer = NULL;
 	JsonObject *token_json = json_object_from_string(response);
 	if (!token_json) {
 		g_warning("could not parse signed HTTP request response");
@@ -1261,8 +1262,10 @@ generate_signed_http_request_process_response(const gchar *response)
 		g_warning("response json is missing 'signedHttpRequest'");
 		goto err;
 	}
-	access_token = g_strdup(
-		json_object_get_string_member(token_json, "signedHttpRequest"));
+	secret_buffer =
+		json_object_get_string_member(token_json, "signedHttpRequest");
+	access_token = g_strdup(secret_buffer);
+	secure_wipe_string((gchar *)secret_buffer);
 err:
 	json_object_unref(token_json);
 	return access_token;
@@ -1295,7 +1298,7 @@ gchar *mib_client_app_generate_signed_http_request(MIBClientApp *app,
 		return NULL;
 	}
 	access_token = generate_signed_http_request_process_response(response);
-	g_free(response);
+	mib_secure_free_string(response);
 	return access_token;
 }
 
@@ -1317,12 +1320,13 @@ static void generate_signed_http_request_async_cb(GObject *source_object,
 		gchar *access_token =
 			generate_signed_http_request_process_response(response);
 		if (access_token) {
-			g_task_return_pointer(task, access_token, g_free);
+			g_task_return_pointer(task, access_token,
+								  (GDestroyNotify)mib_secure_free_string);
 		} else {
 			task_return_broker_error(
 				task, response, "could not parse signed HTTP request response");
 		}
-		g_free(response);
+		mib_secure_free_string(response);
 	}
 	g_object_unref(task);
 }

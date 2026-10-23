@@ -26,10 +26,11 @@ libsso_mib_hdrs = [
   'include/mib-exports.h',
   'include/mib-prt-sso-cookie.h',
   'include/mib-prt.h',
-  'include/mib-pop-params.h'
+  'include/mib-pop-params.h',
+  'include/mib-utils.h'
 ]
 libsso_mib_src = [
-  'src/mib-utils.h',
+  'src/mib-utils-impl.h',
   'src/mib-utils.c',
   'src/mib-account-impl.h',
   'src/mib-account.c',

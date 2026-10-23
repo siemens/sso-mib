@@ -17,6 +17,12 @@
 /**
  * \defgroup prtssocookie PRT SSO Cookie
  * \brief PRT SSO Cookie (MS-OAPXBC OAuth2 extension)
+ *
+ * \note The cookie content is securely wiped from memory when the object is destroyed.
+ * Use the pointer returned when accessing the content directly, without making a
+ * copy. This avoids duplicating the sensitive content in memory and ensures it is
+ * wiped when the cookie object is destroyed.
+ *
  * \addtogroup prtssocookie
  *  @{
  */

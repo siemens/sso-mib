@@ -14,6 +14,8 @@
 #include <glib-2.0/glib.h>
 #include <json-glib/json-glib.h>
 
+#include "mib-utils.h"
+
 typedef struct _MIBAccount MIBAccount;
 
 gchar *json_object_to_string(JsonObject *object);
@@ -33,6 +35,12 @@ gchar *mib_response_error_context(const gchar *response);
  * Helper to deep copy strings in a GSList.
  */
 gpointer copy_string(gconstpointer src, MIB_ARG_UNUSED gpointer data);
+
+/**
+ * Securely wipes the contents of a string by overwriting it with zeros.
+ * The string can be NULL, in which case the function does nothing.
+ */
+void secure_wipe_string(gchar *s);
 
 /**
  * Find an account matching @upn in a list.

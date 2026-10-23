@@ -4,7 +4,7 @@
  */
 
 #include "mib-account-impl.h"
-#include "mib-utils.h"
+#include "mib-utils-impl.h"
 
 gchar *json_object_to_string(JsonObject *object)
 {
@@ -106,6 +106,19 @@ gchar *mib_response_error_context(const gchar *response)
 gpointer copy_string(gconstpointer src, MIB_ARG_UNUSED gpointer data)
 {
 	return g_strdup((const gchar *)src);
+}
+
+void secure_wipe_string(gchar *s)
+{
+	if (!s)
+		return;
+	explicit_bzero(s, strlen(s));
+}
+
+void mib_secure_free_string(gchar *s)
+{
+	secure_wipe_string(s);
+	g_free(s);
 }
 
 MIBAccount *find_account_by_upn(GSList *accounts, const gchar *upn)
