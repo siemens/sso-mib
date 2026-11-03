@@ -11,6 +11,19 @@ gch_smtp_office365 = executable(
   install_tag : 'git-cred-helper'
 )
 
+linux_entra_sso = executable(
+  'linux-entra-sso',
+  'linux-entra-sso/main.c',
+  'linux-entra-sso/native-messaging.c',
+  'linux-entra-sso/json-processing.c',
+  install : true,
+  install_dir : join_paths(get_option('libexecdir'), 'linux-entra-sso'),
+  include_directories : public_headers,
+  link_with : [libsso_mib],
+  dependencies: [glibdep, giodep, jsondep, uuiddep],
+  install_tag : 'linux-entra-sso'
+)
+
 sso_mib_tool = executable(
   'sso-mib-tool',
   [
